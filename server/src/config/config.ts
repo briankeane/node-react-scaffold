@@ -1,0 +1,85 @@
+export enum Environments {
+  PRODUCTION = 'production',
+  DEVELOPMENT = 'development',
+  TEST = 'test',
+}
+
+export class Config {
+  // Allow dynamic assignment of environment variables
+  [key: string]: any;
+
+  env: string;
+
+  constructor(env: string = process.env.NODE_ENV ?? Environments.DEVELOPMENT) {
+    this.env = env;
+    this.loadEnvVars();
+  }
+
+  get BASE_URL(): string {
+    switch (this.env) {
+      case Environments.PRODUCTION:
+        return 'https://your-production-client-url.com';
+      case Environments.DEVELOPMENT:
+        return 'http://localhost:10020';
+      case Environments.TEST:
+        return 'http://localhost:10021';
+      default:
+        throw new Error(`Unknown environment: ${this.env}`);
+    }
+  }
+
+  get CLIENT_BASE_URL(): string {
+    switch (this.env) {
+      case Environments.PRODUCTION:
+        return 'https://your-production-server-url.com';
+      case Environments.DEVELOPMENT:
+        return 'http://localhost:3000';
+      case Environments.TEST:
+        return 'http://localhost:3001';
+      default:
+        throw new Error(`Unknown environment: ${this.env}`);
+    }
+  }
+
+  get GOOGLE_SIGNIN_REDIRECT_URI(): string {
+    switch (this.env) {
+      case Environments.DEVELOPMENT:
+      case Environments.TEST:
+        return 'http://localhost:10020/v1/auth/google/web/authorize';
+      case Environments.PRODUCTION: // google does not allow testing from localhost!
+        return 'https://your-production-url/v1/auth/google/web/authorize';
+      default:
+        throw new Error(`Unknown environment: ${this.env}`);
+    }
+  }
+
+  loadEnvVars(): void {
+    const requiredEnvVars: string[] = [
+      'NODE_ENV',
+      'PORT',
+      'DATABASE_URL',
+      'JWT_SECRET',
+    ];
+
+    for (const envVar of requiredEnvVars) {
+      const value = process.env[envVar];
+      if (value == null) {
+        throw new Error(`Missing environment variable: ${envVar}`);
+      }
+      // Dynamically assign the env var to the instance.
+      (this as any)[envVar] = value;
+    }
+
+    const optionalEnvVars: string[] = ['ONLY_ADMIN_CAN_EDIT_STATIONS'];
+    for (const envVar of optionalEnvVars) {
+      const value = process.env[envVar];
+      if (value) {
+        // Underscore for backing vars
+        (this as any)[`_${envVar}`] = value;
+      }
+    }
+  }
+}
+
+// Export an instance of Config with the current NODE_ENV.
+export default new Config(process.env.NODE_ENV);
