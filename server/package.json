@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "concurrently \"tsc --watch\" \"nodemon -L dist/server.js\"",
+    "dev": "nodemon src/server.ts",
     "build-ts": "tsc && cpy \"src/**/*.yaml\" dist && cpy \"src/**/*.md\" dist"
   },
   "author": "",
@@ -25,6 +25,7 @@
     "@types/node": "^22.15.3",
     "concurrently": "^9.1.2",
     "cpy-cli": "^5.0.0",
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2"
   }
 }
