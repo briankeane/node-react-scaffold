@@ -1,9 +1,9 @@
-import { Request, Response } from 'express';
+import { RequestHandler } from 'express';
 
-function healthCheckEndpoint(_req: Request, res: Response) {
-  return res.status(200).json({ healthy: true });
-}
+const healthCheckEndpoint: RequestHandler = (_req, res, _next) => {
+  res.status(200).json({ healthy: true });
+};
 
 export default {
   healthCheckEndpoint,
-} as { healthCheckEndpoint: (req: Request, res: Response) => void };
+};

@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "dev": "concurrently \"tsc --watch\" \"nodemon -L dist/server.js\"",
     "build-ts": "tsc && cpy \"src/**/*.yaml\" dist && cpy \"src/**/*.md\" dist"
   },
   "author": "",
@@ -22,6 +23,7 @@
     "@types/express": "^5.0.1",
     "@types/morgan": "^1.9.9",
     "@types/node": "^22.15.3",
+    "concurrently": "^9.1.2",
     "cpy-cli": "^5.0.0"
   }
 }
