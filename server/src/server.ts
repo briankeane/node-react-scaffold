@@ -7,7 +7,7 @@ import morgan from 'morgan';
 import addRoutes from './api/routes';
 import config from './config/config';
 
-type AppWithIsReadyPromise = express.Application & {
+export type AppWithIsReadyPromise = express.Application & {
   isReadyPromise: Promise<void>;
 };
 
