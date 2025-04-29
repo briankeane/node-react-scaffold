@@ -7,6 +7,7 @@
     "start": "node server.js",
     "test": "env-cmd -f .env-test ts-node -r tsconfig-paths/register node_modules/.bin/mocha \"./src/{,!(node_modules)/**}/*.test.ts\" --require source-map-support/register --recursive --exit",
     "dev": "nodemon src/server.ts",
+    "lint": "eslint .",
     "build": "npm run build-ts && npm run migrate",
     "build-ts": "tsc && cpy \"src/**/*.yaml\" dist && cpy \"src/**/*.md\" dist",
     "migrate": "ts-node -r tsconfig-paths/register ./node_modules/.bin/sequelize db:migrate",
@@ -27,6 +28,7 @@
     "source-map-support": "^0.5.21"
   },
   "devDependencies": {
+    "@eslint/js": "^9.25.1",
     "@types/body-parser": "^1.19.5",
     "@types/chai": "^5.2.1",
     "@types/compression": "^1.7.5",
@@ -40,10 +42,12 @@
     "concurrently": "^9.1.2",
     "cpy-cli": "^5.0.0",
     "env-cmd": "^10.1.0",
+    "eslint": "^9.25.1",
     "mocha": "^11.1.0",
     "nodemon": "^3.1.10",
     "supertest": "^7.1.0",
     "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0"
+    "tsconfig-paths": "^4.2.0",
+    "typescript-eslint": "^8.31.1"
   }
 }

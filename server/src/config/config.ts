@@ -4,11 +4,22 @@ export enum Environments {
   TEST = 'test',
 }
 
-export class Config {
-  // Allow dynamic assignment of environment variables
-  [key: string]: any;
+type EnvVars = {
+  NODE_ENV: string;
+  PORT: string;
+  DATABASE_URL: string;
+  JWT_SECRET: string;
+  ONLY_ADMIN_CAN_EDIT_STATIONS?: string;
+};
 
+export class Config implements Partial<EnvVars> {
   env: string;
+  NODE_ENV?: string;
+  PORT?: string;
+  DATABASE_URL?: string;
+  JWT_SECRET?: string;
+  SOME_OPTIONAL_ENV_VARIABLE?: string;
+  _SOME_OPTIONAL_ENV_VARIABLE?: string;
 
   constructor(env: string = process.env.NODE_ENV ?? Environments.DEVELOPMENT) {
     this.env = env;
@@ -54,28 +65,29 @@ export class Config {
   }
 
   loadEnvVars(): void {
-    const requiredEnvVars: string[] = [
+    const requiredEnvVars = [
       'NODE_ENV',
       'PORT',
       'DATABASE_URL',
       'JWT_SECRET',
-    ];
+    ] as const;
 
     for (const envVar of requiredEnvVars) {
       const value = process.env[envVar];
       if (value == null) {
         throw new Error(`Missing environment variable: ${envVar}`);
       }
-      // Dynamically assign the env var to the instance.
-      (this as any)[envVar] = value;
+      // Type-safe assignment using type assertion
+      this[envVar] = value;
     }
 
-    const optionalEnvVars: string[] = ['ONLY_ADMIN_CAN_EDIT_STATIONS'];
+    const optionalEnvVars = ['SOME_OPTIONAL_ENV_VARIABLE'] as const;
     for (const envVar of optionalEnvVars) {
       const value = process.env[envVar];
       if (value) {
-        // Underscore for backing vars
-        (this as any)[`_${envVar}`] = value;
+        // Type-safe assignment for optional vars
+        this[envVar] = value;
+        this[`_${envVar}`] = value;
       }
     }
   }
