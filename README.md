@@ -93,6 +93,50 @@ The project uses Docker Compose for development:
   docker-compose run client npm test
   ```
 
+## API Documentation
+
+The API is documented using OpenAPI 3.0 (Swagger) specification. Documentation is available at:
+- `/docs` - Interactive ReDoc documentation UI
+- `/swagger.json` or `/api-docs` - Raw OpenAPI specification
+
+### Documentation Structure
+
+1. **Endpoint Documentation**
+   - Each controller has its own `api.docs.yaml` file in the same directory
+   - Example: `src/api/healthCheck/healthCheck.api.docs.yaml` documents the health check endpoint
+   - These files contain only the path definitions without the root `paths:` element
+   ```yaml
+   # Example: healthCheck.api.docs.yaml
+   /api/health:
+     get:
+       tags:
+         - Health
+       summary: Health Check
+       # ... rest of the endpoint documentation
+   ```
+
+2. **Shared Components**
+   - Common models, schemas, and responses are defined in YAML files in the `src/docs` directory
+   - Example: `src/docs/models/error.yaml` for common error responses
+   - These files can include any valid OpenAPI components (schemas, responses, parameters, etc.)
+   ```yaml
+   # Example: src/docs/models/error.yaml
+   components:
+     schemas:
+       Error:
+         type: object
+         properties:
+           message:
+             type: string
+   ```
+
+### Best Practices
+- Keep endpoint documentation close to the controller code
+- Use shared components to maintain consistency across endpoints
+- Use tags to group related endpoints
+- Include examples in your documentation
+- Document all possible responses, including errors
+
 ## Setting up CircleCI
 
 1. Copy the `.circleci/config.yml` file from this repo to your new repository's `.circleci` directory
