@@ -17,3 +17,5 @@ const sequelize = new Sequelize(url, {
 
 // For ES Module import
 export default sequelize;
+
+module.exports = sequelize;

@@ -7,7 +7,10 @@
     "start": "node server.js",
     "test": "env-cmd -f .env-test ts-node -r tsconfig-paths/register node_modules/.bin/mocha \"./src/{,!(node_modules)/**}/*.test.ts\" --require source-map-support/register --recursive --exit",
     "dev": "nodemon src/server.ts",
-    "build-ts": "tsc && cpy \"src/**/*.yaml\" dist && cpy \"src/**/*.md\" dist"
+    "build-ts": "tsc && cpy \"src/**/*.yaml\" dist && cpy \"src/**/*.md\" dist",
+    "migrate": "ts-node -r tsconfig-paths/register ./node_modules/.bin/sequelize db:migrate",
+    "migrate:test": "env-cmd -f .env-test sequelize db:migrate",
+    "migrate:all": "npm run migrate && npm run migrate:test"
   },
   "author": "",
   "license": "ISC",
@@ -17,9 +20,9 @@
     "express": "^4.18.2",
     "express-bearer-token": "^3.0.0",
     "morgan": "^1.10.0",
-    "source-map-support": "^0.5.21",
     "sequelize": "^6.37.7",
-    "sequelize-cli": "^6.6.2"
+    "sequelize-cli": "^6.6.2",
+    "source-map-support": "^0.5.21"
   },
   "devDependencies": {
     "@types/body-parser": "^1.19.5",
@@ -29,6 +32,7 @@
     "@types/mocha": "^10.0.10",
     "@types/morgan": "^1.9.9",
     "@types/node": "^22.15.3",
+    "@types/sequelize": "^4.28.20",
     "@types/supertest": "^6.0.3",
     "chai": "^5.2.0",
     "concurrently": "^9.1.2",
