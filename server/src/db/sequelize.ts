@@ -2,17 +2,22 @@ import { Sequelize } from 'sequelize';
 import config from '../config';
 import DBConfig from './config';
 
+if (!config.NODE_ENV) {
+  throw new Error('NODE_ENV is not defined');
+}
+
 const dbConfigForThisEnv = DBConfig[config.NODE_ENV];
+if (!dbConfigForThisEnv) {
+  throw new Error(`No database configuration found for environment: ${config.NODE_ENV}`);
+}
 
 // Extract the URL and remove it from the options to avoid duplicate URL in constructor
 const { url, ...otherOptions } = dbConfigForThisEnv;
 
-// Create sequelize with fixed typing
-// @ts-expect-error- Sequelize constructor type is more restrictive than actual usage
+// Create sequelize instance with proper typing
 const sequelize = new Sequelize(url, {
   ...otherOptions,
-  // // @ts-ignore - logger is not in the Options type but works at runtime
-  // logger: logger.log,
+  dialect: 'postgres', // Add explicit dialect since it's required by the type
 });
 
 // For ES Module import
