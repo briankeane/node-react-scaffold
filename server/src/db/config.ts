@@ -50,3 +50,4 @@ const config: DBConfigMap = {
 
 // For ES Module import
 export default config;
+module.exports = config;

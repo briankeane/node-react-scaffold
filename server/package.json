@@ -7,6 +7,7 @@
     "start": "node server.js",
     "test": "env-cmd -f .env-test ts-node -r tsconfig-paths/register node_modules/.bin/mocha \"./src/{,!(node_modules)/**}/*.test.ts\" --require source-map-support/register --recursive --exit",
     "dev": "nodemon src/server.ts",
+    "build": "npm run build-ts && npm run migrate",
     "build-ts": "tsc && cpy \"src/**/*.yaml\" dist && cpy \"src/**/*.md\" dist",
     "migrate": "ts-node -r tsconfig-paths/register ./node_modules/.bin/sequelize db:migrate",
     "migrate:test": "env-cmd -f .env-test sequelize db:migrate",
@@ -20,6 +21,7 @@
     "express": "^4.18.2",
     "express-bearer-token": "^3.0.0",
     "morgan": "^1.10.0",
+    "pg": "^8.15.6",
     "sequelize": "^6.37.7",
     "sequelize-cli": "^6.6.2",
     "source-map-support": "^0.5.21"
