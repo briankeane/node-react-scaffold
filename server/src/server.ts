@@ -34,7 +34,7 @@ app.use(compression());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-let setupPromises: Promise<any>[] = [];
+const setupPromises: Promise<unknown>[] = [];
 
 if (config.NODE_ENV !== 'test') {
   app.use(morgan('dev'));

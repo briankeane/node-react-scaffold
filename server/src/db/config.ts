@@ -6,7 +6,7 @@ interface DBConfig {
   url: string;
   dialect: string;
   database: string;
-  logging?: boolean | Function;
+  logging?: boolean | ((sql: string, timing?: number) => void);
   ssl?: boolean;
   dialectOptions?: {
     ssl?: {
@@ -50,3 +50,4 @@ const config: DBConfigMap = {
 
 // For ES Module import
 export default config;
+module.exports = config;

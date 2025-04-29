@@ -1,8 +1,7 @@
 import { assert } from 'chai';
 import request from 'supertest';
-import { AppWithIsReadyPromise } from '../../server';
 
-const app: AppWithIsReadyPromise = require('../../server').default;
+import app from '../../server';
 
 describe('Authorization and Authentication', function () {
   describe('HealthCheck', function () {
