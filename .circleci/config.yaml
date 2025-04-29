@@ -1,0 +1,136 @@
+version: 2.1
+
+orbs:
+  heroku: circleci/heroku@1.2.3 # Invoke the Heroku orb
+
+workflows:
+  heroku_deploy:
+    jobs:
+      - build
+      - heroku_build:
+          requires:
+            - build
+      - deploy_to_heroku:
+          requires:
+            - heroku_build
+          filters:
+            branches:
+              only: develop
+
+  test:
+    jobs:
+      - build
+
+  lint:
+    jobs:
+      - lint
+
+  test-client:
+    jobs:
+      - test-client
+
+jobs:
+  build:
+    machine: true
+    working_directory: ~/src
+
+    steps:
+      - checkout
+      - run: touch ./server/.env # env files have to exist for docker-compose to work
+      - run: docker-compose run server npx env-cmd -f .env-test npm run build # build includes tsx and migrate
+      - run: docker-compose run server npm test
+
+  heroku_build:
+    machine: true
+    working_directory: ~/src
+
+    steps:
+      - checkout
+      - run: touch ./server/.env # env files have to exist for docker-compose to work
+      - run: docker-compose run server npm run build-ts
+      - run:
+          name: Install required tools
+          command: sudo apt-get update && sudo apt-get install -y jq
+      - run: 
+          name: Fix permissions and prepare for Heroku
+          command: |
+            # Fix permissions from Docker
+            sudo chown -R $USER:$USER ./server
+            
+            # Create a deployment directory structure
+            mkdir -p ./server/deploy/dist
+            
+            # Copy compiled files and dependencies
+            cp -r ./server/dist/* ./server/deploy/dist/
+            
+            # Copy Sequelize configuration files
+            cp ./server/.sequelizerc ./server/deploy/
+            
+            # Copy package files but modify the build script
+            cat ./server/package.json | jq '.scripts.build = "npm run migrate"' > ./server/deploy/package.json
+            cp ./server/package-lock.json ./server/deploy/ || true
+            
+            # Create Procfile that skips build entirely and properly runs migrations
+            echo "release: npx sequelize-cli --options-path=.sequelizerc db:migrate" > ./server/deploy/Procfile
+            echo "web: node dist/server.js" >> ./server/deploy/Procfile
+            echo "worker: node dist/worker.js" >> ./server/deploy/Procfile
+            
+            # Create .slugignore
+            echo "src/" > ./server/deploy/.slugignore
+      - persist_to_workspace:
+          root: ~/src
+          paths:
+            - server/deploy
+
+  lint:
+    machine: true
+    working_directory: ~/src
+
+    steps:
+      - checkout
+      - run: touch ./server/.env
+      - run: docker-compose run server npm run lint
+  
+  test-client:
+    machine: true
+    working_directory: ~/src
+
+    steps:
+      - checkout
+      - run: touch ./server/.env # env files have to exist for docker-compose to work
+      - run: docker-compose run client npm test
+
+  deploy_to_heroku:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/src
+      - run:
+          name: Install Heroku CLI
+          command: curl https://cli-assets.heroku.com/install.sh | sh
+      - run:
+          name: Deploy to Heroku
+          command: |
+            # Set Heroku git remote from our deploy directory
+            # cd ~/src/server/deploy
+            # git init
+            # git config user.email "ci-build@playola.fm"
+            # git config user.name "CircleCI"
+            
+            # Set up Heroku authentication with API key
+            cat > ~/.netrc \<< EOF
+            machine git.heroku.com
+              login $HEROKU_EMAIL
+              password $HEROKU_API_KEY
+            EOF
+            chmod 600 ~/.netrc
+            
+            # Add Heroku remote
+            heroku git:remote -a $HEROKU_APP_NAME
+            
+            # Create git commit and push to Heroku
+            # git add -A
+            # git commit -m "Build from CircleCI [skip ci]"
+            # git push heroku HEAD:refs/heads/master -f
