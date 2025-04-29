@@ -28,7 +28,7 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: 'http://localhost:3000',
+        url: 'http://localhost:10020',
         description: 'Development server',
       },
     ],
@@ -48,12 +48,11 @@ const options: swaggerJsdoc.Options = {
     ],
   },
   apis: [
-    './src/routes/*.ts',
-    // API documentation and YAML files
+    // API documentation YAML files
     path.join(__dirname, '../api/**/*.api.docs.yaml'),
-    // Schema files from docs folder
-    path.join(__dirname, './**/*.yaml'),
-  ], // Path to the API routes
+    // Additional schema files from docs folder
+    path.join(__dirname, './**/*.yaml')
+  ]
 };
 
 const swaggerSpec = swaggerJsdoc(options);
