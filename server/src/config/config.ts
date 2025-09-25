@@ -1,3 +1,5 @@
+import { optionalEnvVars, requiredEnvVars } from './envVars';
+
 export enum Environments {
   PRODUCTION = 'production',
   DEVELOPMENT = 'development',
@@ -65,13 +67,6 @@ export class Config implements Partial<EnvVars> {
   }
 
   loadEnvVars(): void {
-    const requiredEnvVars = [
-      'NODE_ENV',
-      'PORT',
-      'DATABASE_URL',
-      'JWT_SECRET',
-    ] as const;
-
     for (const envVar of requiredEnvVars) {
       const value = process.env[envVar];
       if (value == null) {
@@ -81,7 +76,6 @@ export class Config implements Partial<EnvVars> {
       this[envVar] = value;
     }
 
-    const optionalEnvVars = ['SOME_OPTIONAL_ENV_VARIABLE'] as const;
     for (const envVar of optionalEnvVars) {
       const value = process.env[envVar];
       if (value) {

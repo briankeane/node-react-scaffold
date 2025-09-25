@@ -9,6 +9,7 @@
     "dev": "nodemon src/server.ts",
     "lint": "eslint .",
     "build": "npm run build-ts && npm run migrate",
+    "env:check": "node dist/scripts/checkEnv.js",
     "build-ts": "tsc && cpy \"src/**/*.yaml\" dist && cpy \"src/**/*.md\" dist",
     "migrate": "ts-node -r tsconfig-paths/register ./node_modules/.bin/sequelize db:migrate",
     "migrate:test": "env-cmd -f .env-test sequelize db:migrate",
