@@ -15,5 +15,9 @@ env.yml
 .eslintcache
 
 client/coverage
+client/dist
 
 server/dist
+
+tmp/
+data/
