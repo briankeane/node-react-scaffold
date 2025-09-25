@@ -55,6 +55,12 @@ A modern full-stack TypeScript application template with React frontend and Node
    docker-compose up
    ```
 
+5. (Optional) Install the formatting pre-commit hook:
+   ```bash
+   ./hooks/setup.sh
+   ```
+   This hook runs Prettier inside the existing Docker containers before each commit. Make sure `docker-compose up` (or `make launch`) is running when committing changes.
+
    This will start:
    - Frontend at http://localhost:3000
    - Backend API at http://localhost:10020
