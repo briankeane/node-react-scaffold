@@ -44,10 +44,13 @@ workflows:
               ignore:
                 - main
 
-  lint:
+  lint-client:
     jobs:
-      - lint
       - lint-client
+
+  lint-server:
+    jobs:
+      - lint-server
 
   test-client:
     jobs:
@@ -118,7 +121,7 @@ jobs:
           paths:
             - server/deploy
 
-  lint:
+  lint-server:
     machine: true
     working_directory: ~/src
 
