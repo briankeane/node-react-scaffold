@@ -27,6 +27,9 @@ logs-server:
 logs-client:
 	$(COMPOSE) logs -f client
 
+logs-worker:
+	$(COMPOSE) logs -f worker
+
 test-server:
 	$(COMPOSE) exec server npm run test
 
