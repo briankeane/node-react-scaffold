@@ -59,7 +59,7 @@ A modern full-stack TypeScript application template with React frontend and Node
    ```bash
    ./hooks/setup.sh
    ```
-   This hook runs Prettier inside the existing Docker containers before each commit. Make sure `docker-compose up` (or `make launch`) is running when committing changes.
+   This hook runs Prettier inside the existing Docker containers before each commit. Make sure `docker-compose up` (or `make launch`) is running when committing changes. You can trigger the hook manually anytime with `./hooks/pre-commit` while the containers are running.
 
    This will start:
    - Frontend at http://localhost:3000
