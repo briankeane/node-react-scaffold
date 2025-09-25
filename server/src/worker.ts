@@ -1,4 +1,4 @@
-import { startWorker } from './scripts/startWorker';
+import { startWorker } from "./scripts/startWorker";
 
 startWorker().catch((err) => {
   console.error(err);

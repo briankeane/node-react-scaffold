@@ -4,15 +4,15 @@ import {
   InferAttributes,
   InferCreationAttributes,
   Model,
-} from 'sequelize';
-import sequelize from '../../sequelize';
+} from "sequelize";
+import sequelize from "../../sequelize";
 
 class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
   declare id: CreationOptional<string>;
   declare displayName: string;
   declare email: string;
   declare profileImageUrl?: CreationOptional<string>;
-  declare role: 'admin' | 'user' | 'guest';
+  declare role: "admin" | "user" | "guest";
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 
@@ -62,17 +62,17 @@ User.init(
       allowNull: false,
     },
     role: {
-      type: DataTypes.ENUM('admin', 'user', 'guest'),
+      type: DataTypes.ENUM("admin", "user", "guest"),
       allowNull: false,
-      defaultValue: 'user',
+      defaultValue: "user",
     },
     createdAt: DataTypes.DATE,
     updatedAt: DataTypes.DATE,
   },
   {
     sequelize,
-    modelName: 'user',
-  }
+    modelName: "user",
+  },
 );
 
 export default User;
