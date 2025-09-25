@@ -50,6 +50,8 @@ A modern full-stack TypeScript application template with React frontend and Node
 
 4. Start the development environment:
    ```bash
+   # Update docker-compose.yaml container_name entries to match your project prefix (e.g., "myapp-postgres")
+   # or set COMPOSE_PROJECT_NAME=myapp when running docker compose to avoid container name conflicts.
    docker-compose up
    ```
 
