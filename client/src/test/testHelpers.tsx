@@ -1,7 +1,7 @@
-export class PromiseResolver {
-  reject!: (value: any) => void;
-  resolve!: (value: any) => void;
-  promise: Promise<any>;
+export class PromiseResolver<T = unknown> {
+  reject!: (value: T) => void;
+  resolve!: (value: T) => void;
+  promise: Promise<T>;
 
   constructor() {
     this.promise = new Promise((resolve, reject) => {

@@ -173,6 +173,7 @@ The API is documented using OpenAPI 3.0 (Swagger) specification. Documentation i
    - `HEROKU_STAGING_APP_NAME`, `HEROKU_STAGING_EMAIL`, `HEROKU_STAGING_API_KEY`
    - `HEROKU_APP_NAME`
    Deploy jobs automatically halt if any of the required variables above are missing.
+   CircleCI uses `DOCKERHUB_USERNAME`/`DOCKERHUB_PASSWORD` to authenticate before running Docker Compose builds; create a Docker Hub account (free tier is fine) and store the credentials as project-level environment variables.
 
 4. The CircleCI configuration includes:
    - Automated testing for both server and client
