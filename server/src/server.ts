@@ -7,6 +7,7 @@ import morgan from "morgan";
 import addRoutes from "./api/routes";
 import config from "./config/config";
 import addDocRoutes from "./docs";
+import { errorHandler } from "./middleware/errorHandler";
 
 export type AppWithIsReadyPromise = express.Application & {
   isReadyPromise: Promise<void>;
@@ -44,6 +45,7 @@ if (config.NODE_ENV !== "test") {
 const server = http.createServer(app);
 addRoutes(app);
 addDocRoutes(app);
+app.use(errorHandler);
 
 if (require.main === module) {
   server.listen(port);
