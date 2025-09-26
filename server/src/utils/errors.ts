@@ -22,18 +22,19 @@ export class ValidationError extends AppError {}
 export class ConflictError extends AppError {}
 
 export class ServerError extends AppError {
-  constructor(message = 'An unexpected error occurred', data?: unknown) {
+  constructor(message = "An unexpected error occurred", data?: unknown) {
     super(message, data);
   }
 }
 
 export const ErrorMessages = {
-  RESOURCE_NOT_FOUND: 'The requested resource could not be found.',
-  AUTHENTICATION_REQUIRED: 'Authentication is required to access this resource.',
-  FORBIDDEN: 'You do not have permission to perform this action.',
-  VALIDATION_FAILED: 'The provided data is invalid.',
-  CONFLICT: 'The request could not be completed due to a conflict.',
-  SERVER_ERROR: 'An unexpected error occurred.',
+  RESOURCE_NOT_FOUND: "The requested resource could not be found.",
+  AUTHENTICATION_REQUIRED:
+    "Authentication is required to access this resource.",
+  FORBIDDEN: "You do not have permission to perform this action.",
+  VALIDATION_FAILED: "The provided data is invalid.",
+  CONFLICT: "The request could not be completed due to a conflict.",
+  SERVER_ERROR: "An unexpected error occurred.",
 } as const;
 
 export const createNotFoundError = (message: string, data?: unknown) =>
