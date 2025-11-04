@@ -11,8 +11,8 @@ const UserDetailPage = () => {
         User detail
       </Typography>
       <Typography variant="body1" className="user-detail-page__description">
-        Detailed information for user <strong>{userId}</strong> will appear
-        here once the API integration is complete.
+        Detailed information for user <strong>{userId}</strong> will appear here
+        once the API integration is complete.
       </Typography>
 
       <Card className="user-detail-page__placeholder">

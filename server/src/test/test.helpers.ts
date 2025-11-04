@@ -1,15 +1,29 @@
-export async function clearDatabase(db: any): Promise<void> {
-  if (!db || !db.sequelize || !db.models) {
+import type { Sequelize } from "sequelize";
+
+interface DatabaseWithModels {
+  sequelize: Sequelize;
+  models: Record<
+    string,
+    {
+      destroy: (options: {
+        where: Record<string, never>;
+        cascade: boolean;
+        force: boolean;
+      }) => Promise<unknown>;
+    }
+  >;
+}
+
+export async function clearDatabase(
+  db: DatabaseWithModels | undefined,
+): Promise<void> {
+  if (!db?.sequelize || !db.models) {
     return;
   }
 
   await db.sequelize.query("SET session_replication_role = replica;");
 
-  const modelEntries = Object.values(db.models) as Array<{
-    destroy: (options: Record<string, unknown>) => Promise<unknown>;
-  }>;
-
-  for (const model of modelEntries) {
+  for (const model of Object.values(db.models)) {
     await model.destroy({ where: {}, cascade: true, force: true });
   }
 

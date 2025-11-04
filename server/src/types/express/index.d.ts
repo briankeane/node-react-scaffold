@@ -1,7 +1,9 @@
+import type { JWTPayload } from "../jwt";
+
 declare global {
   namespace Express {
     interface Request {
-      user: any;
+      user: JWTPayload;
     }
   }
 }

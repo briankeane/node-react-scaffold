@@ -1,5 +1,1 @@
-export {
-  Config,
-  Environments,
-  config as default,
-} from "../lib/config/config";
+export { Config, Environments, config as default } from "../lib/config/config";

@@ -1,4 +1,10 @@
-import { Alert, AlertTitle, Box, createTheme, ThemeProvider } from "@mui/material";
+import {
+  Alert,
+  AlertTitle,
+  Box,
+  createTheme,
+  ThemeProvider,
+} from "@mui/material";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Provider } from "react-redux";
 import { Outlet } from "react-router-dom";
@@ -40,7 +46,11 @@ function App() {
     return (
       <ThemeProvider theme={theme}>
         <Box className="app app--config-error">
-          <Alert severity="error" variant="filled" className="app__config-alert">
+          <Alert
+            severity="error"
+            variant="filled"
+            className="app__config-alert"
+          >
             <AlertTitle>Missing Google OAuth configuration</AlertTitle>
             Add a `VITE_GOOGLE_CLIENT_ID` entry to your client environment file
             (for example, `client/.env.local`) and restart the dev server.

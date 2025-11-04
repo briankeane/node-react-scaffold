@@ -74,7 +74,6 @@ export class Config {
       }
     }
   }
-
 }
 
 export const config = new Config(process.env.NODE_ENV);

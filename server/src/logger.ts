@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-
 let _suppressOutput = false;
 
 export function suppressLogger(): void {
@@ -53,5 +51,3 @@ export default logger;
 if (typeof module !== "undefined") {
   module.exports = logger;
 }
-
-/* eslint-enable no-console */

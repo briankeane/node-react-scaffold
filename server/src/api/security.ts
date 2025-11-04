@@ -3,24 +3,16 @@ import { expressjwt } from "express-jwt";
 import { config } from "../lib/config";
 import stationLib from "../lib/stations/stations.lib";
 import { AuthenticatedRequest } from "../types/express";
+import { JWTPayload } from "../types/jwt";
 import {
   AuthenticationError,
   ErrorMessages,
   PermissionError,
 } from "../utils/errors";
 
-export interface JWTPayload {
-  id: string;
-  firstName: string;
-  lastName?: string;
-  email: string;
-  profileImageUrl?: string;
-  role: "admin" | "user" | "guest";
-  deepLink?: string;
-}
-
 type RequestWithAuth = Request & {
   auth?: JWTPayload;
+  user?: JWTPayload;
 };
 
 const jwt = expressjwt({
@@ -46,7 +38,7 @@ function authenticate(req: Request, res: Response, next: NextFunction) {
 
       Object.keys(req.params).forEach((paramName) => {
         if (req.params[paramName] === "me") {
-          req.params[paramName] = authReq.user!.id;
+          req.params[paramName] = authReq.user!.id as unknown as string;
         }
       });
 
@@ -69,7 +61,7 @@ function authenticateAccessTokenOnly(
 
       Object.keys(req.params).forEach((paramName) => {
         if (req.params[paramName] === "me") {
-          req.params[paramName] = authReq.user!.id;
+          req.params[paramName] = authReq.user!.id as unknown as string;
         }
       });
 
@@ -108,10 +100,10 @@ async function checkUserPermissionToEditStation(
   next: NextFunction,
 ) {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as AuthenticatedRequest<JWTPayload>;
     const { stationId } = req.params;
     const result = await stationLib.userHasPermissionToEditStation({
-      userId: authReq.user.id,
+      userId: authReq.user.id as string,
       stationId,
     });
     if (!result) {
@@ -139,7 +131,7 @@ type UserRole = keyof typeof ROLE_HIERARCHY;
 function requireRoleOfAtLeast(minimumRole: UserRole) {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = req as AuthenticatedRequest<JWTPayload>;
       const userRole = authReq.user.role as UserRole;
 
       if (!userRole || !(userRole in ROLE_HIERARCHY)) {
@@ -167,10 +159,10 @@ function isOperatingOnSelf(
   source: "params" | "body" = "params",
 ) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as AuthenticatedRequest<JWTPayload>;
     const targetUserId =
       source === "params" ? req.params[paramName] : req.body[paramName];
-    const authenticatedUserId = authReq.user.id;
+    const authenticatedUserId = authReq.user.id as string;
 
     if (targetUserId !== authenticatedUserId) {
       next(

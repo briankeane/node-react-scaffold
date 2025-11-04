@@ -28,7 +28,12 @@ const Navbar = () => {
   };
 
   return (
-    <AppBar position="static" color="transparent" elevation={0} className="navbar">
+    <AppBar
+      position="static"
+      color="transparent"
+      elevation={0}
+      className="navbar"
+    >
       <Toolbar className="navbar__toolbar">
         <Typography
           variant="h6"

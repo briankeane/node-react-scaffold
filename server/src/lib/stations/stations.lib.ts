@@ -1,6 +1,12 @@
-async function userHasPermissionToEditStation(
-  _params: { userId: string; stationId: string },
-): Promise<boolean> {
+export interface UserStationPermissionInput {
+  userId: string;
+  stationId: string;
+}
+
+export function userHasPermissionToEditStation(
+  params: UserStationPermissionInput,
+): boolean {
+  void params;
   return true;
 }
 
