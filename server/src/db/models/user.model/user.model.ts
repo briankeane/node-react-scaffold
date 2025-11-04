@@ -9,38 +9,26 @@ import sequelize from "../../sequelize";
 
 class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
   declare id: CreationOptional<string>;
-  declare displayName: string;
+  declare firstName: string;
+  declare lastName?: string;
+  declare deepLink?: string;
   declare email: string;
-  declare profileImageUrl?: CreationOptional<string>;
-  declare role: "admin" | "user" | "guest";
+  declare profileImageUrl?: string;
+  declare role: CreationOptional<"admin" | "user" | "guest">;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
-
-  // Example of Association properties
-  // declare stations?: Station[];
-
-  // Example of BelongsToMany mixins for the relationship with Station
-  // public getStations!: BelongsToManyGetAssociationsMixin<Station>;
-  // public addStation!: BelongsToManyAddAssociationMixin<Station, string>;
-  // public setStations!: BelongsToManySetAssociationsMixin<Station, string>;
-  // public removeStation!: BelongsToManyRemoveAssociationMixin<Station, string>;
-
-  // Example of HasMany mixin for the relationship with ListeningSession
-  // public getListeningSessions!: HasManyGetAssociationsMixin<ListeningSession>;
-
-  // Example of Static associations property (optional but helps TypeScript understand the relationships)
-  // public static associations: {
-  //   stations: Association<User, Station>;
-  //   listeningSessions: Association<User, ListeningSession>;
-  // };
+  declare assetWorkflowRole?: { role?: string } | null;
 
   jwtRepr() {
     return {
       id: this.id.toString(),
-      displayName: this.displayName,
+      firstName: this.firstName,
+      lastName: this.lastName,
       email: this.email,
       profileImageUrl: this.profileImageUrl,
       role: this.role,
+      deepLink: this.deepLink,
+      assetWorkflowRole: this.assetWorkflowRole?.role,
     };
   }
 }
@@ -54,13 +42,18 @@ User.init(
       allowNull: false,
       autoIncrement: false,
     },
-    displayName: DataTypes.STRING,
-    profileImageUrl: DataTypes.STRING,
+    firstName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    lastName: DataTypes.STRING,
+    deepLink: DataTypes.STRING,
     email: {
       type: DataTypes.STRING,
       unique: true,
       allowNull: false,
     },
+    profileImageUrl: DataTypes.STRING,
     role: {
       type: DataTypes.ENUM("admin", "user", "guest"),
       allowNull: false,

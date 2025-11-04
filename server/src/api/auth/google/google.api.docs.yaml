@@ -1,0 +1,48 @@
+paths:
+  /v1/auth/google/signin:
+    post:
+      tags:
+        - Authentication
+        - Google
+      summary: Sign in with Google
+      description: |
+        Processes sign-in/sign-up via Google authentication.
+        This endpoint validates the Google authentication code and creates or retrieves a user account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  description: The authorization code from Google OAuth
+                  example: 4/P7q7W91a-oMsCeLvIaQm6bTrgtp7
+                originatesFromIOS:
+                  type: boolean
+                  description: Whether the request originated from an iOS device (affects token validation)
+                  example: false
+              required:
+                - code
+      responses:
+        200:
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT issued by the server for subsequent requests
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        400:
+          description: Invalid input parameters
+          $ref: "#/responses/400"
+        401:
+          description: Google authentication failed
+          $ref: "#/responses/401"
+        500:
+          description: Server error
+          $ref: "#/responses/500"

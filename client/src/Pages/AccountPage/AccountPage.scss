@@ -1,0 +1,19 @@
+.account-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #ffffff;
+}
+
+.account-page__heading {
+  font-weight: 600;
+}
+
+.account-page__description {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.account-page__card {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+}

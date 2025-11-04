@@ -11,7 +11,14 @@ module.exports = {
         allowNull: false,
         autoIncrement: false,
       },
-      displayName: {
+      firstName: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
+      lastName: {
+        type: Sequelize.STRING,
+      },
+      deepLink: {
         type: Sequelize.STRING,
       },
       email: {

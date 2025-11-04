@@ -1,0 +1,19 @@
+.user-detail-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #ffffff;
+}
+
+.user-detail-page__heading {
+  font-weight: 600;
+}
+
+.user-detail-page__description {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.user-detail-page__placeholder {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+}

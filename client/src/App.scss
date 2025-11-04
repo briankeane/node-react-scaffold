@@ -1,0 +1,22 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #1c1c1e 0%, #111111 100%);
+  color: #ffffff;
+}
+
+.app--config-error {
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.app__config-alert {
+  max-width: 480px;
+}
+
+.app__content {
+  flex: 1;
+  padding: 24px;
+}

@@ -1,5 +1,6 @@
 import { Sequelize } from "sequelize";
 import config from "../config";
+import logger from "../logger";
 import DBConfig from "./config";
 
 if (!config.NODE_ENV) {
@@ -16,10 +17,21 @@ if (!dbConfigForThisEnv) {
 // Extract the URL and remove it from the options to avoid duplicate URL in constructor
 const { url, ...otherOptions } = dbConfigForThisEnv;
 
-// Create sequelize instance with proper typing
+const { logging, ...remainingOptions } = otherOptions as typeof otherOptions & {
+  logging?: boolean | ((sql: string, timing?: number) => void);
+};
+
+const loggingOption =
+  typeof logging !== "undefined"
+    ? logging
+    : config.NODE_ENV === "test"
+      ? false
+      : (...args: unknown[]) => logger.log(...args);
+
 const sequelize = new Sequelize(url, {
-  ...otherOptions,
-  dialect: "postgres", // Add explicit dialect since it's required by the type
+  ...remainingOptions,
+  dialect: "postgres",
+  logging: loggingOption,
 });
 
 // For ES Module import

@@ -1,0 +1,21 @@
+.landing-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  color: #ffffff;
+}
+
+.landing-page__heading {
+  font-weight: 700;
+}
+
+.landing-page__subheading {
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 520px;
+}
+
+.landing-page__quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+}

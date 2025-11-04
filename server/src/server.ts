@@ -6,6 +6,7 @@ import http from "http";
 import morgan from "morgan";
 import addRoutes from "./api/routes";
 import config from "./config/config";
+import logger from "./logger";
 import addDocRoutes from "./docs";
 import { errorHandler } from "./middleware/errorHandler";
 
@@ -57,9 +58,14 @@ app.isReadyPromise = new Promise((resolve, reject) => {
       return resolve();
     })
     .catch((err) => {
-      // logger.error(err);
+      logger.error("Server setup error:", err);
       return reject(err);
     });
 });
 
 export default app;
+
+if (typeof module !== "undefined") {
+  module.exports = app;
+  module.exports.default = app;
+}

@@ -5,16 +5,23 @@
  * stay within the '${ROOT}/test' folder.
  */
 
-import { afterEach, before } from "mocha";
-// import db from '../db';
+import { after, afterEach, before } from "mocha";
 import app from "../server";
+import db from "../db";
+import logger from "../logger";
+import { clearDatabase } from "./test.helpers";
 
 before(async function (this: Mocha.Context) {
   this.timeout(5000);
+  logger.suppressLogger();
   await app.isReadyPromise;
-  // await clearDatabase(db);
+  await clearDatabase(db);
 });
 
 afterEach(async function () {
-  // await clearDatabase(db);
+  await clearDatabase(db);
+});
+
+after(function () {
+  logger.enableLogger();
 });
