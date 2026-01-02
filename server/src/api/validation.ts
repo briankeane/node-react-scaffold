@@ -1,12 +1,12 @@
-import { RequestHandler } from 'express';
-import { ValidationError } from '../errors';
+import { RequestHandler } from "express";
+import { ValidationError } from "../errors";
 
 export function checkQueryFor(strArray: string[]) {
-  return checkFor('query', strArray);
+  return checkFor("query", strArray);
 }
 
 export function checkBodyFor(strArray: string[]) {
-  return checkFor('body', strArray);
+  return checkFor("body", strArray);
 }
 
 function checkFor(name: string, strArray: string[]): RequestHandler {
@@ -15,12 +15,12 @@ function checkFor(name: string, strArray: string[]): RequestHandler {
       (str) =>
         !Object.prototype.hasOwnProperty.call(
           req[name as keyof typeof req] as Record<string, unknown>,
-          str
-        )
+          str,
+        ),
     );
     if (missing.length > 0) {
       return next(
-        new ValidationError('Error: Missing required parameters', { missing })
+        new ValidationError("Error: Missing required parameters", { missing }),
       );
     }
     const str = req[name as keyof typeof req];
@@ -33,21 +33,21 @@ function checkFor(name: string, strArray: string[]): RequestHandler {
 
 export function checkForAtLeastOneOf(
   name: string,
-  strArray: string[]
+  strArray: string[],
 ): RequestHandler {
   return (req, res, next) => {
     const existing = strArray.filter((str) =>
       Object.prototype.hasOwnProperty.call(
         req[name as keyof typeof req] as Record<string, unknown>,
-        str
-      )
+        str,
+      ),
     );
     if (!existing.length) {
       return next(
         new ValidationError(
-          `Error: ${name} must contain at least one of ${strArray.join(', ')}`,
-          { existing }
-        )
+          `Error: ${name} must contain at least one of ${strArray.join(", ")}`,
+          { existing },
+        ),
       );
     }
     return next();
@@ -56,7 +56,7 @@ export function checkForAtLeastOneOf(
 
 export function checkForNoExtraFields(
   name: string,
-  allowedFields: string[]
+  allowedFields: string[],
 ): RequestHandler {
   return (req, res, next) => {
     const extraFields = [];
@@ -69,7 +69,7 @@ export function checkForNoExtraFields(
       return next(
         new ValidationError(`Error: Extra parameters in ${name}`, {
           extraFields,
-        })
+        }),
       );
     }
     return next();

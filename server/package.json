@@ -12,7 +12,7 @@
     "env:check": "node dist/scripts/checkEnv.js",
     "build-ts": "tsc && cpy \"src/**/*.yaml\" dist && cpy \"src/**/*.md\" dist",
     "migrate": "ts-node -r tsconfig-paths/register ./node_modules/.bin/sequelize db:migrate",
-    "migrate:test": "env-cmd -f .env-test sequelize db:migrate",
+    "migrate:test": "env-cmd -f .env-test ts-node -r tsconfig-paths/register ./node_modules/.bin/sequelize db:migrate",
     "migrate:all": "npm run migrate && npm run migrate:test",
     "prettier:write": "prettier --write .",
     "worker": "node dist/worker.js"
