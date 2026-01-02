@@ -1,22 +1,78 @@
+COMPOSE := docker-compose
+
 install:
 	[ -f ./server/.env ] || cp ./server/.env-example ./server/.env
 	[ -f ./client/.env ] || cp ./client/.env-example ./client/.env
-	[ -f ./serverless/.env ] || cp ./serverless/.env-example ./serverless/.env
-	docker-compose build
+	$(COMPOSE) build
 
 launch:
-	docker-compose up
+	$(COMPOSE) up
+
+launch-detached:
+	$(COMPOSE) up -d
+
+terminate:
+	$(COMPOSE) down
+
+restart:
+	$(COMPOSE) down
+	$(COMPOSE) up
+
+logs:
+	$(COMPOSE) logs -f
+
+logs-server:
+	$(COMPOSE) logs -f server
+
+logs-client:
+	$(COMPOSE) logs -f client
+
+logs-worker:
+	$(COMPOSE) logs -f worker
 
 test-server:
-	docker-compose exec server npm run test
+	$(COMPOSE) exec server npm run test
 
-generate-migration:
-	docker-compose exec server sequelize migration:generate --name=$(NAME)
-	cp ./server/dist/db/migrations/* ./server/src/db/migrations
+test-client:
+	$(COMPOSE) exec client npm run test
+
+lint-server:
+	$(COMPOSE) exec server npm run lint
+
+lint-client:
+	$(COMPOSE) exec client npm run lint
+
+prettier-server:
+	$(COMPOSE) exec server npm run prettier:write
+
+prettier-client:
+	$(COMPOSE) exec client npm run prettier:write
+
+prettier-all:
+	$(MAKE) prettier-server
+	$(MAKE) prettier-client
 
 build-server:
-	docker-compose exec server npm run build-ts
-	
-db-migrate-all:
-	cp ./server/src/db/migrations/* ./server/dist/db/migrations/
-	docker-compose exec server npm run migrate:all
+	$(COMPOSE) exec server npm run build-ts
+
+build-client:
+	$(COMPOSE) exec client npm run build
+
+build-and-test-server:
+	$(COMPOSE) exec server npm run build-ts
+	$(COMPOSE) exec server npm run test
+
+migrate:
+	$(COMPOSE) exec server npm run migrate
+
+migrate-all:
+	$(COMPOSE) exec server npm run migrate:all
+
+generate-migration:
+	$(COMPOSE) exec server sequelize migration:generate --name=$(NAME)
+	cp ./server/dist/db/migrations/* ./server/src/db/migrations
+
+.PHONY: install launch launch-detached terminate restart logs logs-server logs-client \
+	test-server test-client lint-server lint-client prettier-server prettier-client \
+	prettier-all build-server build-client build-and-test-server migrate migrate-all \
+	generate-migration

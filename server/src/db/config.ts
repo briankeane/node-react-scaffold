@@ -23,20 +23,20 @@ interface DBConfigMap {
 const config: DBConfigMap = {
   development: {
     url: process.env.DATABASE_URL as string,
-    dialect: 'postgres',
+    dialect: "postgres",
     // the database name must be provided for sequelize-cli,
     // even though it is included in the url
-    database: (process.env.DATABASE_URL as string).split('/').slice(-1)[0],
+    database: (process.env.DATABASE_URL as string).split("/").slice(-1)[0],
   },
   test: {
     url: process.env.DATABASE_URL as string,
-    dialect: 'postgres',
+    dialect: "postgres",
     logging: false,
-    database: (process.env.DATABASE_URL as string).split('/').slice(-1)[0],
+    database: (process.env.DATABASE_URL as string).split("/").slice(-1)[0],
   },
   production: {
     url: `${process.env.DATABASE_URL}`,
-    dialect: 'postgres',
+    dialect: "postgres",
     ssl: true,
     dialectOptions: {
       ssl: {
@@ -44,7 +44,7 @@ const config: DBConfigMap = {
         rejectUnauthorized: false, //https://github.com/brianc/node-postgres/issues/2009#issuecomment-556020509
       },
     },
-    database: (process.env.DATABASE_URL as string).split('/').slice(-1)[0],
+    database: (process.env.DATABASE_URL as string).split("/").slice(-1)[0],
   },
 };
 

@@ -20,7 +20,7 @@ A modern full-stack TypeScript application template with React frontend and Node
 ## Prerequisites
 
 - Docker and Docker Compose
-- Node.js 18+ (for local development)
+- Node.js 22.15.0 and npm 10.9.2 (matches the Docker images; consider using nvm to pin locally)
 - PostgreSQL (if running locally without Docker)
 
 ## Getting Started
@@ -50,29 +50,52 @@ A modern full-stack TypeScript application template with React frontend and Node
 
 4. Start the development environment:
    ```bash
+   # Update docker-compose.yaml container_name entries to match your project prefix (e.g., "myapp-postgres")
+   # or set COMPOSE_PROJECT_NAME=myapp when running docker compose to avoid container name conflicts.
    docker-compose up
    ```
+
+5. (Optional) Install the formatting pre-commit hook:
+   ```bash
+   ./hooks/setup.sh
+   ```
+   This hook runs Prettier inside the existing Docker containers before each commit. Make sure `docker-compose up` (or `make launch`) is running when committing changes. You can trigger the hook manually anytime with `./hooks/pre-commit` while the containers are running.
 
    This will start:
    - Frontend at http://localhost:3000
    - Backend API at http://localhost:10020
+   - Background worker container running `npm run worker`
    - PostgreSQL database at localhost:5432
    - Database migrations will run automatically
 
 ## Development
 
 ### Server Commands
-- `npm run dev` - Start development server with hot reload
-- `npm test` - Run tests
-- `npm run lint` - Run ESLint
-- `npm run build` - Build for production
-- `npm run migrate` - Run database migrations
+- `npm run dev` - Compile TypeScript in watch mode and restart the built server from `dist/`
+- `npm test` - Run the Mocha/Chai test suite (uses `.env-test`)
+- `npm run lint` - Fail on ESLint warnings and ensure Prettier formatting is clean
+- `npm run prettier:write` - Format server files with Prettier
+- `npm run build` - Compile TypeScript and run migrations
+- `npm run migrate` / `npm run migrate:all` - Run database migrations locally and against the test DB
+- `npm run worker` - Execute the background worker entry point (`src/worker.ts`)
 
 ### Client Commands
-- `npm run dev` - Start Vite dev server
-- `npm test` - Run Vitest tests
-- `npm run build` - Build for production
-- `npm run lint` - Run ESLint
+- `npm run dev` - Start the Vite dev server
+- `npm test` - Run Vitest with coverage
+- `npm run lint` - Fail on ESLint warnings and check Prettier formatting
+- `npm run prettier:write` - Format client files with Prettier
+- `npm run build` - Build the production bundle
+
+### Make Targets
+The `Makefile` wraps common Docker tasks. Highlights:
+
+- `make install` – copy `.env` templates and build the Docker images
+- `make launch` / `make launch-detached` – start the full stack (foreground or detached)
+- `make logs`, `make logs-server`, `make logs-client` – follow container logs
+- `make logs-worker` – follow the worker container logs
+- `make test-server`, `make test-client` – run tests in containers
+- `make lint-server`, `make lint-client`, `make prettier-all` – enforce formatting and linting through Docker
+- `make migrate`, `make migrate-all`, `make generate-migration NAME=add-table` – manage migrations
 
 ## Docker Development
 
@@ -81,7 +104,9 @@ The project uses Docker Compose for development:
 - `docker-compose up` - Start all services
 - `docker-compose up server` - Start only the backend
 - `docker-compose up client` - Start only the frontend
+- `docker-compose up worker` - Start only the worker
 - `docker-compose down` - Stop all services
+- If you customized the `container_name` placeholders, use those names when running `docker exec`; Compose targets continue to be the service names (`server`, `client`, `postgres`, etc.).
 
 ## Testing
 
@@ -144,15 +169,18 @@ The API is documented using OpenAPI 3.0 (Swagger) specification. Documentation i
 2. Sign up for CircleCI at https://circleci.com/ and connect your GitHub repository
 
 3. In your CircleCI project settings, add the following environment variables:
-   - `HEROKU_API_KEY`: Your Heroku API key
-   - `HEROKU_EMAIL`: Your Heroku account email
-   - `HEROKU_APP_NAME`: Your Heroku application name
+   - `DOCKERHUB_USERNAME`, `DOCKERHUB_PASSWORD`
+   - `HEROKU_STAGING_APP_NAME`, `HEROKU_STAGING_EMAIL`, `HEROKU_STAGING_API_KEY`
+   - `HEROKU_APP_NAME`
+   Deploy jobs automatically halt if any of the required variables above are missing.
+   CircleCI uses `DOCKERHUB_USERNAME`/`DOCKERHUB_PASSWORD` to authenticate before running Docker Compose builds; create a Docker Hub account (free tier is fine) and store the credentials as project-level environment variables.
 
 4. The CircleCI configuration includes:
    - Automated testing for both server and client
    - Linting checks
    - Automated deployment to Heroku on pushes to the `develop` branch
-   - Proper handling of build artifacts and migrations
+   - Promotion of the staging slug to production on pushes to `main`
+   - Proper handling of build artifacts, migrations, and environment validation
 
 5. The deployment pipeline:
    - Builds the TypeScript code
