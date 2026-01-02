@@ -1,5 +1,8 @@
 COMPOSE := docker-compose
 
+find-open-ports:
+	./scripts/set-ports.sh
+
 install:
 	[ -f ./server/.env ] || cp ./server/.env-example ./server/.env
 	[ -f ./client/.env ] || cp ./client/.env-example ./client/.env
@@ -72,7 +75,7 @@ generate-migration:
 	$(COMPOSE) exec server sequelize migration:generate --name=$(NAME)
 	cp ./server/dist/db/migrations/* ./server/src/db/migrations
 
-.PHONY: install launch launch-detached terminate restart logs logs-server logs-client \
+.PHONY: find-open-ports install launch launch-detached terminate restart logs logs-server logs-client \
 	test-server test-client lint-server lint-client prettier-server prettier-client \
 	prettier-all build-server build-client build-and-test-server migrate migrate-all \
 	generate-migration
