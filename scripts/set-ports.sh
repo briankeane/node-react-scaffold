@@ -34,7 +34,7 @@ check_all_ports() {
   check_port "$client_hmr_port"
 }
 
-find_available_ports() {
+find_available_offset() {
   local offset=0
   local max_attempts=10
 
@@ -62,7 +62,18 @@ update_env_var() {
   fi
 }
 
-offset=$(find_available_ports)
+# Read PORT_OFFSET from root .env if it exists, otherwise auto-detect
+touch .env
+if grep -q "^PORT_OFFSET=" .env 2>/dev/null; then
+  offset=$(grep "^PORT_OFFSET=" .env | cut -d= -f2)
+  echo "Using PORT_OFFSET=$offset from .env"
+  if ! check_all_ports "$offset"; then
+    echo "Warning: Some ports at offset $offset are already in use"
+  fi
+else
+  offset=$(find_available_offset)
+  echo "Auto-detected available PORT_OFFSET=$offset"
+fi
 
 POSTGRES_PORT=$((BASE_POSTGRES_PORT + offset))
 SERVER_PORT=$((BASE_SERVER_PORT + offset))
@@ -72,7 +83,7 @@ CLIENT_PORT=$((BASE_CLIENT_PORT + offset))
 CLIENT_HMR_PORT=$((BASE_CLIENT_HMR_PORT + offset))
 
 # Update root .env for docker-compose
-touch .env
+update_env_var ".env" "PORT_OFFSET" "$offset"
 update_env_var ".env" "POSTGRES_PORT" "$POSTGRES_PORT"
 update_env_var ".env" "SERVER_PORT" "$SERVER_PORT"
 update_env_var ".env" "SERVER_DEBUG_PORT" "$SERVER_DEBUG_PORT"
@@ -80,18 +91,22 @@ update_env_var ".env" "WORKER_PORT" "$WORKER_PORT"
 update_env_var ".env" "CLIENT_PORT" "$CLIENT_PORT"
 update_env_var ".env" "CLIENT_HMR_PORT" "$CLIENT_HMR_PORT"
 
-# Update server/.env
-update_env_var "server/.env" "PORT" "$SERVER_PORT"
+# Update server/.env (PORT is the host-mapped port for external access)
+if [ -f "server/.env" ]; then
+  update_env_var "server/.env" "PORT" "$SERVER_PORT"
+fi
 
 # Update client/.env
-update_env_var "client/.env" "VITE_CLIENT_BASE_URL" "http://localhost:$CLIENT_PORT"
-update_env_var "client/.env" "VITE_SERVER_BASE_URL" "http://localhost:$SERVER_PORT"
-update_env_var "client/.env" "VITE_HMR_PORT" "$CLIENT_HMR_PORT"
+if [ -f "client/.env" ]; then
+  update_env_var "client/.env" "VITE_CLIENT_BASE_URL" "http://localhost:$CLIENT_PORT"
+  update_env_var "client/.env" "VITE_SERVER_BASE_URL" "http://localhost:$SERVER_PORT"
+  update_env_var "client/.env" "VITE_HMR_PORT" "$CLIENT_HMR_PORT"
+fi
 
 if [ "$offset" -eq 0 ]; then
-  echo "Using default ports"
+  echo "Using default ports (offset 0)"
 else
-  echo "Default ports occupied, using offset +$offset"
+  echo "Using offset +$offset"
 fi
 
 echo "  PostgreSQL: $POSTGRES_PORT"

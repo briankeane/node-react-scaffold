@@ -7,6 +7,7 @@ import morgan from "morgan";
 import addRoutes from "./api/routes";
 import config from "./config/config";
 import addDocRoutes from "./docs";
+import logger from "./logger";
 import { errorHandler } from "./middleware/errorHandler";
 
 export type AppWithIsReadyPromise = express.Application & {
@@ -57,7 +58,7 @@ app.isReadyPromise = new Promise((resolve, reject) => {
       return resolve();
     })
     .catch((err) => {
-      // logger.error(err);
+      logger.error(err);
       return reject(err);
     });
 });

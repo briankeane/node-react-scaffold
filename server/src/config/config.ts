@@ -22,6 +22,8 @@ export class Config implements Partial<EnvVars> {
   JWT_SECRET?: string;
   SOME_OPTIONAL_ENV_VARIABLE?: string;
   _SOME_OPTIONAL_ENV_VARIABLE?: string;
+  BASIC_AUTH_TOKENS?: string;
+  _BASIC_AUTH_TOKENS?: string;
 
   constructor(env: string = process.env.NODE_ENV ?? Environments.DEVELOPMENT) {
     this.env = env;

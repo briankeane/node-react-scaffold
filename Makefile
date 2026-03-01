@@ -4,8 +4,10 @@ find-open-ports:
 	./scripts/set-ports.sh
 
 install:
+	[ -f ./.env ] || cp ./.env-example ./.env
 	[ -f ./server/.env ] || cp ./server/.env-example ./server/.env
 	[ -f ./client/.env ] || cp ./client/.env-example ./client/.env
+	./scripts/set-ports.sh
 	$(COMPOSE) build
 
 launch:
