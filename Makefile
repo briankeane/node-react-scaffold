@@ -1,4 +1,4 @@
-COMPOSE := docker-compose
+COMPOSE := docker compose
 
 find-open-ports:
 	./scripts/set-ports.sh
@@ -39,11 +39,19 @@ test-server:
 test-client:
 	$(COMPOSE) exec client npm run test
 
+test-all:
+	$(MAKE) test-server
+	$(MAKE) test-client
+
 lint-server:
 	$(COMPOSE) exec server npm run lint
 
 lint-client:
 	$(COMPOSE) exec client npm run lint
+
+lint-all:
+	$(MAKE) lint-server
+	$(MAKE) lint-client
 
 prettier-server:
 	$(COMPOSE) exec server npm run prettier:write
@@ -65,10 +73,7 @@ build-and-test-server:
 	$(COMPOSE) exec server npm run build-ts
 	$(COMPOSE) exec server npm run test
 
-migrate:
-	$(COMPOSE) exec server npm run migrate
-
-migrate-all:
+db-migrate-all:
 	$(COMPOSE) exec server npm run migrate:all
 
 generate-migration:
@@ -76,6 +81,6 @@ generate-migration:
 	cp ./server/dist/db/migrations/* ./server/src/db/migrations
 
 .PHONY: find-open-ports install launch launch-detached terminate restart logs logs-server logs-client \
-	test-server test-client lint-server lint-client prettier-server prettier-client \
-	prettier-all build-server build-client build-and-test-server migrate migrate-all \
-	generate-migration
+	logs-worker test-server test-client test-all lint-server lint-client lint-all \
+	prettier-server prettier-client prettier-all build-server build-client build-and-test-server \
+	db-migrate-all generate-migration

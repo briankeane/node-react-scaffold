@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "test": "env-cmd -f .env-test ts-node -r tsconfig-paths/register node_modules/.bin/mocha \"./src/{,!(node_modules)/**}/*.test.ts\" --require source-map-support/register --recursive --exit",
+    "test": "env-cmd -f .env-test ts-node -r tsconfig-paths/register node_modules/.bin/mocha \"./src/{,!(node_modules)/**}/*.test.ts\" --require src/test/mochaSetup.test.ts --require source-map-support/register --recursive --exit",
     "dev": "concurrently \"tsc --watch --preserveWatchOutput\" \"nodemon -L --watch dist dist/server.js\"",
     "lint": "eslint . --ext ts,js --report-unused-disable-directives --max-warnings 0 && prettier --check .",
     "build": "npm run build-ts && npm run migrate",
@@ -15,15 +15,15 @@
     "migrate:test": "env-cmd -f .env-test ts-node -r tsconfig-paths/register ./node_modules/.bin/sequelize db:migrate",
     "migrate:all": "npm run migrate && npm run migrate:test",
     "prettier:write": "prettier --write .",
-    "worker": "node dist/worker.js"
+    "worker": "nodemon src/worker.ts"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
-    "body-parser": "^2.2.0",
     "compression": "^1.8.0",
+    "cors": "^2.8.5",
     "express": "^4.18.2",
     "express-bearer-token": "^3.0.0",
     "express-jwt": "^8.5.1",
@@ -38,9 +38,10 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.25.1",
-    "@types/body-parser": "^1.19.5",
+    "@faker-js/faker": "^9.0.0",
     "@types/chai": "^5.2.1",
     "@types/compression": "^1.7.5",
+    "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/mocha": "^10.0.10",
     "@types/morgan": "^1.9.9",
@@ -53,11 +54,13 @@
     "env-cmd": "^10.1.0",
     "eslint": "^9.25.1",
     "mocha": "^11.1.0",
+    "nock": "^14.0.0",
     "nodemon": "^3.1.10",
     "prettier": "^3.6.2",
     "supertest": "^7.1.0",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
+    "typescript": "~5.7.2",
     "typescript-eslint": "^8.31.1"
   },
   "engines": {
