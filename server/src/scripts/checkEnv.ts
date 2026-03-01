@@ -1,3 +1,4 @@
+import logger from "../logger";
 import { requiredEnvVars } from "../config/envVars";
 
 function findMissingEnvVars(): string[] {
@@ -11,15 +12,15 @@ export function ensureRequiredEnvVars(): void {
   const missingEnvVars = findMissingEnvVars();
 
   if (missingEnvVars.length > 0) {
-    console.error("Missing required environment variables:");
-    console.error("");
+    logger.always.error("Missing required environment variables:");
+    logger.always.error("");
     for (const envVar of missingEnvVars) {
-      console.error(`- ${envVar}`);
+      logger.always.error(`- ${envVar}`);
     }
     process.exit(1);
   }
 
-  console.log("All required environment variables are set.");
+  logger.always.log("All required environment variables are set.");
 }
 
 if (require.main === module) {

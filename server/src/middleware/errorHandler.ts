@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import logger from "../logger";
 import {
   AppError,
   AuthenticationError,
@@ -65,7 +66,7 @@ export function errorHandler(
       }),
     );
 
-    console.error("Validation Error", {
+    logger.error("Validation Error", {
       errors: validationErrors,
       path: req.path,
       method: req.method,
@@ -81,7 +82,7 @@ export function errorHandler(
   }
 
   if (error instanceof AppError) {
-    console.error(`${error.name || "Error"}: ${error.message}`, {
+    logger.error(`${error.name || "Error"}: ${error.message}`, {
       statusCode,
       stack: error.stack,
       data: error.data,
@@ -90,7 +91,7 @@ export function errorHandler(
       userId: (req as { user?: { id?: string } }).user?.id,
     });
   } else {
-    console.error("Unhandled Server Error", {
+    logger.error("Unhandled Server Error", {
       error: error.message,
       stack: error.stack,
       path: req.path,

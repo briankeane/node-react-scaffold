@@ -3,8 +3,10 @@ declare namespace Express {
     auth?: {
       id: string;
       email: string;
-      // Match the JWTPayload interface
-      [key: string]: string | number;
+      displayName?: string;
+      profileImageUrl?: string;
+      role: "admin" | "user" | "guest";
+      [key: string]: string | number | undefined;
     };
   }
 }

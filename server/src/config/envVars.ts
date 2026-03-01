@@ -5,6 +5,9 @@ export const requiredEnvVars = [
   "JWT_SECRET",
 ] as const;
 
-export const optionalEnvVars = ["SOME_OPTIONAL_ENV_VARIABLE"] as const;
+export const optionalEnvVars = [
+  "SOME_OPTIONAL_ENV_VARIABLE",
+  "BASIC_AUTH_TOKENS",
+] as const;
 
 export type RequiredEnvVar = (typeof requiredEnvVars)[number];

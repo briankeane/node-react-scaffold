@@ -8,10 +8,8 @@ let apiGuideMarkdownDescription = "";
 try {
   const apiGuidePath = path.join(__dirname, "API_GUIDE.md");
   apiGuideMarkdownDescription = fs.readFileSync(apiGuidePath, "utf8");
-} catch (error) {
-  console.warn("API_GUIDE.md not found, using default description", error);
-  apiGuideMarkdownDescription =
-    "This is a REST API designed to program live, 24-hr radio stations.";
+} catch {
+  apiGuideMarkdownDescription = "";
 }
 
 const options: swaggerJsdoc.Options = {
