@@ -38,6 +38,15 @@ logs-worker:
 test-server:
 	$(COMPOSE) exec server npm run test
 
+test-server-file:
+	$(COMPOSE) exec server npx env-cmd -f .env-test ts-node -r tsconfig-paths/register node_modules/.bin/mocha "./src/{,!(node_modules)/**}/*.test.ts" --require source-map-support/register --recursive --exit --grep "$(GREP)"
+
+test-server-with-logging:
+	$(COMPOSE) exec -e LOGGING_LEVEL=verbose server npm run test
+
+test-server-debug:
+	$(COMPOSE) exec server npm run test:debug
+
 test-client:
 	$(COMPOSE) exec client npm run test
 
@@ -77,7 +86,21 @@ generate-migration:
 	$(COMPOSE) exec server sequelize migration:generate --name=$(NAME)
 	cp ./server/dist/db/migrations/* ./server/src/db/migrations
 
+worker-debug:
+	$(COMPOSE) exec server npm run worker:debug
+
+# --- Heroku DB Backup/Restore (uncomment and configure) ---
+# HEROKU_PROD_APP := your-prod-app
+# HEROKU_STAGING_APP := your-staging-app
+#
+# db-backup:
+# 	heroku pg:backups:capture --app $(HEROKU_PROD_APP)
+#
+# db-restore-staging:
+# 	heroku pg:backups:restore $(HEROKU_PROD_APP)::b001 DATABASE_URL --app $(HEROKU_STAGING_APP) --confirm $(HEROKU_STAGING_APP)
+
 .PHONY: find-open-ports install launch launch-detached terminate restart logs logs-server logs-client \
-	test-server test-client lint-server lint-client prettier-server prettier-client \
+	test-server test-server-file test-server-with-logging test-server-debug test-client \
+	lint-server lint-client prettier-server prettier-client \
 	prettier-all build-server build-client build-and-test-server migrate migrate-all \
-	generate-migration
+	generate-migration worker-debug

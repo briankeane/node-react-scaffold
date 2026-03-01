@@ -15,7 +15,9 @@
     "migrate:test": "env-cmd -f .env-test ts-node -r tsconfig-paths/register ./node_modules/.bin/sequelize db:migrate",
     "migrate:all": "npm run migrate && npm run migrate:test",
     "prettier:write": "prettier --write .",
-    "worker": "node dist/worker.js"
+    "worker": "node dist/worker.js",
+    "test:debug": "env-cmd -f .env-test node --inspect-brk=0.0.0.0:9229 node_modules/.bin/mocha \"./src/{,!(node_modules)/**}/*.test.ts\" --require ts-node/register --require source-map-support/register --recursive --exit --timeout 0",
+    "worker:debug": "node --inspect-brk=0.0.0.0:9229 dist/worker.js"
   },
   "author": "",
   "license": "ISC",
@@ -30,6 +32,7 @@
     "express-jwt": "^8.5.1",
     "ioredis": "^5.10.0",
     "morgan": "^1.10.0",
+    "node-cron": "^4.2.1",
     "pg": "^8.15.6",
     "redoc-express": "^2.1.0",
     "sequelize": "^6.37.7",
@@ -48,6 +51,7 @@
     "@types/mocha": "^10.0.10",
     "@types/morgan": "^1.9.9",
     "@types/node": "^22.15.3",
+    "@types/node-cron": "^3.0.11",
     "@types/sequelize": "^4.28.20",
     "@types/supertest": "^6.0.3",
     "chai": "^5.2.0",
