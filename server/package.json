@@ -38,6 +38,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.25.1",
+    "@faker-js/faker": "^10.3.0",
     "@types/body-parser": "^1.19.5",
     "@types/chai": "^5.2.1",
     "@types/compression": "^1.7.5",
@@ -53,6 +54,7 @@
     "env-cmd": "^10.1.0",
     "eslint": "^9.25.1",
     "mocha": "^11.1.0",
+    "nock": "^14.0.11",
     "nodemon": "^3.1.10",
     "prettier": "^3.6.2",
     "supertest": "^7.1.0",
