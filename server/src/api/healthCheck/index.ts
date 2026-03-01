@@ -5,9 +5,9 @@ const router = express.Router();
 
 router.get('/', controller.healthCheckEndpoint);
 
-// To use middleware, it would be something like
-/*
-router.post('/', authenticateAccessToken, checkBodyFor(['name', 'email']), controller.healthCheckEndpoint);
-*/
+// Example with middleware:
+// import { authenticateAccessToken } from '../middleware/security';
+// import { checkBodyFor } from '../middleware/routeValidators';
+// router.post('/', authenticateAccessToken, checkBodyFor(['name', 'email']), controller.createSomething);
 
 export default router;

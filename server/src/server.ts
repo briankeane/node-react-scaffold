@@ -1,5 +1,6 @@
 import bodyParser from 'body-parser';
 import compression from 'compression';
+import cors from 'cors';
 import express from 'express';
 import bearerToken from 'express-bearer-token';
 import http from 'http';
@@ -7,6 +8,7 @@ import morgan from 'morgan';
 import addRoutes from './api/routes';
 import config from './config/config';
 import addDocRoutes from './docs';
+import logger from './logger';
 
 export type AppWithIsReadyPromise = express.Application & {
   isReadyPromise: Promise<void>;
@@ -15,20 +17,20 @@ export type AppWithIsReadyPromise = express.Application & {
 const port = config.PORT;
 const app = express() as unknown as AppWithIsReadyPromise;
 
-app.all('*', function (req, res, next) {
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-  res.header(
-    'Access-Control-Allow-Headers',
-    'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Authorization'
-  );
-  if ('OPTIONS' === req.method) {
-    res.status(200).end();
-  } else {
-    next();
-  }
-});
+app.use(
+  cors({
+    origin: '*',
+    credentials: true,
+    methods: ['GET', 'PUT', 'POST', 'DELETE'],
+    allowedHeaders: [
+      'X-Requested-With',
+      'X-HTTP-Method-Override',
+      'Content-Type',
+      'Accept',
+      'Authorization',
+    ],
+  })
+);
 
 app.use(bearerToken());
 app.use(compression());
@@ -45,8 +47,14 @@ const server = http.createServer(app);
 addRoutes(app);
 addDocRoutes(app);
 
+// Error handler must be registered after all routes
+import { errorHandler } from './api/errorHandler';
+app.use(errorHandler);
+
 if (require.main === module) {
-  server.listen(port);
+  server.listen(port, () => {
+    logger.log(`Server listening on port ${port}`);
+  });
 }
 
 app.isReadyPromise = new Promise((resolve, reject) => {
@@ -55,7 +63,7 @@ app.isReadyPromise = new Promise((resolve, reject) => {
       return resolve();
     })
     .catch((err) => {
-      // logger.error(err);
+      logger.error(err);
       return reject(err);
     });
 });

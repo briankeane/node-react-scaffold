@@ -1,188 +1,117 @@
 # Node/React Scaffold
 
-A modern full-stack TypeScript application template with React frontend and Node.js backend. This scaffold provides a production-ready setup with Docker containerization, automated testing, and CI/CD integration.
+A full-stack TypeScript starter template with React frontend and Node.js backend. Includes authentication patterns, state management, routing, and test infrastructure out of the box.
 
 ## Tech Stack
 
-### Backend (Node.js)
-- Express.js web framework
-- PostgreSQL database with Sequelize ORM
-- TypeScript for type safety
-- Docker containerization
-- Automated testing with Mocha and Chai
+### Backend
+- **Express.js** on Node 22
+- **PostgreSQL 16** with Sequelize ORM
+- **TypeScript** with strict mode
+- **Mocha/Chai/Supertest** for testing
+- **OpenAPI 3.0** documentation (ReDoc + Swagger)
 
-### Frontend (React)
-- Vite for fast development and building
-- React 18 with TypeScript
-- Testing with Vitest and React Testing Library
-- ESLint for code quality
+### Frontend
+- **React 19** with Vite
+- **Redux Toolkit** for state management
+- **React Router v7** with protected routes
+- **Axios** HTTP client
+- **Vitest** with React Testing Library
+
+### Infrastructure
+- Docker Compose with Postgres, Redis, and hot-reload
+- CircleCI for CI/CD
+- Heroku deployment ready
 
 ## Prerequisites
 
-- Docker and Docker Compose
-- Node.js 18+ (for local development)
-- PostgreSQL (if running locally without Docker)
+- Docker and Docker Compose v2
+- Node.js 22+ (for local development outside Docker)
 
 ## Getting Started
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd scaffold
-   ```
+```bash
+# 1. Clone and enter the project
+git clone <repository-url>
+cd scaffold
 
-2. Create environment files:
-   ```bash
-   # Server environment
-   cp server/.env.example server/.env
-   cp server/.env.example server/.env-test
-   
-   # Client environment (if needed)
-   cp client/.env.example client/.env
-   ```
+# 2. Setup environment and build containers
+make install
 
-3. Update configuration:
-   - In `server/.env`, set your database and API configurations
-   - In `src/config/config.ts`, update the production values for:
-     - `BASE_URL`
-     - `CLIENT_BASE_URL`
-     - `GOOGLE_SIGNIN_REDIRECT_URL`
+# 3. Start all services
+make launch
+```
 
-4. Start the development environment:
-   ```bash
-   docker-compose up
-   ```
+This starts:
+- Frontend at http://localhost:3000
+- Backend API at http://localhost:10020
+- API docs at http://localhost:10020/docs
+- PostgreSQL at localhost:5432
+- Redis at localhost:6379
 
-   This will start:
-   - Frontend at http://localhost:3000
-   - Backend API at http://localhost:10020
-   - PostgreSQL database at localhost:5432
-   - Database migrations will run automatically
+## Development Commands
 
-## Development
-
-### Server Commands
-- `npm run dev` - Start development server with hot reload
-- `npm test` - Run tests
-- `npm run lint` - Run ESLint
-- `npm run build` - Build for production
-- `npm run migrate` - Run database migrations
-
-### Client Commands
-- `npm run dev` - Start Vite dev server
-- `npm test` - Run Vitest tests
-- `npm run build` - Build for production
-- `npm run lint` - Run ESLint
-
-## Docker Development
-
-The project uses Docker Compose for development:
-
-- `docker-compose up` - Start all services
-- `docker-compose up server` - Start only the backend
-- `docker-compose up client` - Start only the frontend
-- `docker-compose down` - Stop all services
-
-## Testing
-
-- Backend tests use Mocha/Chai and run in a separate test database
-- Frontend tests use Vitest with React Testing Library
-- Run all tests with:
-  ```bash
-  docker-compose run server npm test
-  docker-compose run client npm test
-  ```
-
-## API Documentation
-
-The API is documented using OpenAPI 3.0 (Swagger) specification. Documentation is available at:
-- `/docs` - Interactive ReDoc documentation UI
-- `/swagger.json` or `/api-docs` - Raw OpenAPI specification
-
-### Documentation Structure
-
-1. **Endpoint Documentation**
-   - Each controller has its own `api.docs.yaml` file in the same directory
-   - Example: `src/api/healthCheck/healthCheck.api.docs.yaml` documents the health check endpoint
-   - These files contain only the path definitions without the root `paths:` element
-   ```yaml
-   # Example: healthCheck.api.docs.yaml
-   /api/health:
-     get:
-       tags:
-         - Health
-       summary: Health Check
-       # ... rest of the endpoint documentation
-   ```
-
-2. **Shared Components**
-   - Common models, schemas, and responses are defined in YAML files in the `src/docs` directory
-   - Example: `src/docs/models/error.yaml` for common error responses
-   - These files can include any valid OpenAPI components (schemas, responses, parameters, etc.)
-   ```yaml
-   # Example: src/docs/models/error.yaml
-   components:
-     schemas:
-       Error:
-         type: object
-         properties:
-           message:
-             type: string
-   ```
-
-### Best Practices
-- Keep endpoint documentation close to the controller code
-- Use shared components to maintain consistency across endpoints
-- Use tags to group related endpoints
-- Include examples in your documentation
-- Document all possible responses, including errors
-
-## Setting up CircleCI
-
-1. Copy the `.circleci/config.yml` file from this repo to your new repository's `.circleci` directory
-
-2. Sign up for CircleCI at https://circleci.com/ and connect your GitHub repository
-
-3. In your CircleCI project settings, add the following environment variables:
-   - `HEROKU_API_KEY`: Your Heroku API key
-   - `HEROKU_EMAIL`: Your Heroku account email
-   - `HEROKU_APP_NAME`: Your Heroku application name
-
-4. The CircleCI configuration includes:
-   - Automated testing for both server and client
-   - Linting checks
-   - Automated deployment to Heroku on pushes to the `develop` branch
-   - Proper handling of build artifacts and migrations
-
-5. The deployment pipeline:
-   - Builds the TypeScript code
-   - Runs tests
-   - Prepares the deployment package
-   - Deploys to Heroku with proper release commands
-
-Note: Make sure your Heroku application is created and properly configured before enabling the CircleCI integration.
+```bash
+make install          # Copy .env files + build Docker images
+make launch           # Start all services
+make test-server      # Run server tests
+make test-client      # Run client tests
+make test-all         # Run all tests
+make lint-server      # Lint server code
+make lint-client      # Lint client code
+make lint-all         # Lint everything
+make build-server     # Build server TypeScript
+make db-migrate-all   # Run database migrations
+make generate-migration NAME=<name>  # Generate a new migration
+```
 
 ## Project Structure
 
 ```
-├── client/               # React frontend
-│   ├── src/             # Source files
-│   ├── tests/           # Test files
-│   └── vite.config.ts   # Vite configuration
-├── server/              # Node.js backend
-│   ├── src/             # Source files
-│   ├── tests/           # Test files
-│   └── migrations/      # Database migrations
-├── docker/              # Docker configuration
-└── .circleci/          # CI/CD configuration
+├── client/               # React 19 frontend
+│   ├── src/
+│   │   ├── redux/        # Redux Toolkit store + slices
+│   │   ├── Routes/       # React Router + protected routes
+│   │   ├── Pages/        # Page components
+│   │   ├── Components/   # Reusable components
+│   │   ├── Services/     # API client (Axios)
+│   │   └── test/         # Test helpers
+│   └── Dockerfile
+├── server/               # Express backend
+│   ├── src/
+│   │   ├── api/          # Route handlers + tests + docs
+│   │   ├── lib/          # Business logic
+│   │   ├── db/           # Sequelize models + migrations
+│   │   ├── config/       # Environment configuration
+│   │   ├── test/         # Test infrastructure
+│   │   └── utils/        # Shared utilities
+│   └── Dockerfile
+├── docker/               # Docker configuration
+├── docker-compose.yaml   # Service orchestration
+├── Makefile              # Development commands
+└── .circleci/            # CI/CD configuration
 ```
 
-## Contributing
+## API Documentation
 
-1. Create a feature branch from `develop`
-2. Make your changes
-3. Run tests and linting
-4. Submit a pull request to `develop`
+Available at:
+- `/docs` — Interactive ReDoc UI
+- `/swagger.json` or `/api-docs` — Raw OpenAPI spec
+
+Each feature module includes its own `*.api.docs.yaml` file co-located with the handler code.
+
+## Testing
+
+- **Server**: Mocha + Chai + Supertest, with nock for HTTP mocking and automatic DB cleanup between tests
+- **Client**: Vitest + React Testing Library, with `withProviders()` helper for components needing Redux/Router context
+
+## Configuration
+
+Copy the example env files (done automatically by `make install`):
+- `server/.env-example` → `server/.env`
+- `client/.env-example` → `client/.env`
+
+Update `server/src/config/config.ts` with production URLs when deploying.
 
 ## License
 

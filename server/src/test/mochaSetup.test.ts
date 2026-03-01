@@ -1,20 +1,21 @@
-/*
- * Global setup code for mocha tests
- * note: I think this works (executes first) because
- * it is not inside of a describe block.   It still must
- * stay within the '${ROOT}/test' folder.
- */
-
-import { afterEach, before } from 'mocha';
-// import db from '../db';
+import nock from 'nock';
 import app from '../server';
+import { clearDatabase } from './testHelpers';
 
-before(async function (this: Mocha.Context) {
-  this.timeout(5000);
-  await app.isReadyPromise;
-  // await clearDatabase(db);
-});
+export const mochaHooks = {
+  async beforeAll() {
+    (this as Mocha.Context).timeout(5000);
+    nock.disableNetConnect();
+    nock.enableNetConnect('127.0.0.1');
+    await app.isReadyPromise;
+  },
 
-afterEach(async function () {
-  // await clearDatabase(db);
-});
+  async afterEach() {
+    nock.cleanAll();
+    await clearDatabase();
+  },
+
+  async afterAll() {
+    nock.enableNetConnect();
+  },
+};

@@ -1,7 +1,15 @@
+# Rename "YOUR_PROJECT_NAME" in container_name values to avoid collisions
+# with other Docker Compose projects running on the same machine.
+
 services:
-  # redis:
-  #   container_name: "redis"
-  #   image: "redis:alpine"
+  redis:
+    container_name: "redis"
+    image: "redis:alpine"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 5s
+      retries: 5
 
   postgres:
     container_name: "postgres"
