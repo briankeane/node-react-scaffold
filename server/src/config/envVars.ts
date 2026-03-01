@@ -8,6 +8,7 @@ export const requiredEnvVars = [
 export const optionalEnvVars = [
   "SOME_OPTIONAL_ENV_VARIABLE",
   "BASIC_AUTH_TOKENS",
+  "REDIS_URL",
 ] as const;
 
 export type RequiredEnvVar = (typeof requiredEnvVars)[number];

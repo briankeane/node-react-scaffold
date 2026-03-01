@@ -24,6 +24,8 @@ export class Config implements Partial<EnvVars> {
   _SOME_OPTIONAL_ENV_VARIABLE?: string;
   BASIC_AUTH_TOKENS?: string;
   _BASIC_AUTH_TOKENS?: string;
+  REDIS_URL?: string;
+  _REDIS_URL?: string;
 
   constructor(env: string = process.env.NODE_ENV ?? Environments.DEVELOPMENT) {
     this.env = env;
