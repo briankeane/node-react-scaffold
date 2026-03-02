@@ -134,7 +134,7 @@ const UUID_REGEX =
 export function validateUUIDsInParams(paramArray: string[]): RequestHandler {
   return (req, res, next) => {
     for (const paramName of paramArray) {
-      const paramValue = req.params[paramName];
+      const paramValue = req.params[paramName] as string;
       if (paramValue && !UUID_REGEX.test(paramValue)) {
         return next(
           new ValidationError(ErrorMessages.invalidUuidFormat(paramName)),
@@ -183,7 +183,7 @@ export function convertQueryParamToDate(dateParams: string[]): RequestHandler {
             new ValidationError(`Invalid Value: ${param} must be a valid date`),
           );
         }
-        (req.query as Record<string, Date | string>)[param] = parsedDate;
+        (req.query as Record<string, unknown>)[param] = parsedDate;
       }
     }
     return next();
@@ -221,7 +221,7 @@ export function convertQueryParamToNumber(
             ),
           );
         }
-        (req.query as Record<string, number | string>)[param] = parsedNumber;
+        (req.query as Record<string, unknown>)[param] = parsedNumber;
       }
     }
     return next();
