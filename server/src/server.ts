@@ -17,7 +17,7 @@ export type AppWithIsReadyPromise = express.Application & {
 const port = config.PORT;
 const app = express() as unknown as AppWithIsReadyPromise;
 
-app.all("*", function (req, res, next) {
+app.use(function (req, res, next) {
   res.header("Access-Control-Allow-Credentials", "true");
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE");
@@ -31,6 +31,20 @@ app.all("*", function (req, res, next) {
     next();
   }
 });
+
+// Express 5 makes req.query a read-only getter. Restore writable behavior
+// so existing middleware (convertQueryParamToDate, etc.) can mutate it.
+app.use(function (req, _res, next) {
+  Object.defineProperty(req, "query", {
+    ...Object.getOwnPropertyDescriptor(req, "query"),
+    value: req.query,
+    writable: true,
+  });
+  next();
+});
+
+// Express 5 defaults to "simple" query parser; use "extended" (qs) for nested object support
+app.set("query parser", "extended");
 
 app.use(bearerToken());
 app.use(compression());
