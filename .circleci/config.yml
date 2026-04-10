@@ -1,40 +1,44 @@
 version: 2.1
 
-orbs:
-  heroku: circleci/heroku@1.2.3 # Invoke the Heroku orb
-
 workflows:
-  heroku_deploy:
+  deploy_staging:
     jobs:
       - build:
           filters:
             branches:
               only: develop
-      - heroku_build:
+      - build_and_push_image:
           requires:
             - build
           filters:
             branches:
               only: develop
-      - deploy_to_heroku_staging:
+          context:
+            - ghcr
+      - deploy_to_render_staging:
           requires:
-            - heroku_build
+            - build_and_push_image
           filters:
             branches:
               only: develop
+          context:
+            - render
 
-  heroku_promote:
+  deploy_production:
     jobs:
       - build:
           filters:
             branches:
               only: main
-      - promote_to_heroku_production:
+      - promote_to_production:
           requires:
             - build
           filters:
             branches:
               only: main
+          context:
+            - ghcr
+            - render
 
   test:
     jobs:
@@ -43,6 +47,7 @@ workflows:
             branches:
               ignore:
                 - main
+                - develop
 
   lint-client:
     jobs:
@@ -63,63 +68,151 @@ jobs:
 
     steps:
       - checkout
-      - run: touch ./server/.env # env files have to exist for docker compose to work
+      - run: touch ./server/.env
       - run:
           name: Authenticate with Docker Hub
           command: |
             : "${DOCKERHUB_USERNAME:?Set DOCKERHUB_USERNAME in CircleCI project settings}"
             : "${DOCKERHUB_PASSWORD:?Set DOCKERHUB_PASSWORD in CircleCI project settings}"
             echo "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
-      - run: docker compose run server npx env-cmd -f .env-test npm run build # build includes tsx and migrate
+      - run: docker compose run server npx env-cmd -f .env-test npm run build
       - run: docker compose run server npm test
 
-  heroku_build:
+  build_and_push_image:
     machine: true
     working_directory: ~/src
 
     steps:
       - checkout
-      - run: touch ./server/.env # env files have to exist for docker compose to work
       - run:
-          name: Authenticate with Docker Hub
+          name: Log in to GHCR
+          command: echo "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
+      - run:
+          name: Build production image
+          command: docker build -t ghcr.io/$GHCR_USERNAME/$CIRCLE_PROJECT_REPONAME:staging -f server/Dockerfile.production server
+      - run:
+          name: Push image to GHCR
+          command: docker push ghcr.io/$GHCR_USERNAME/$CIRCLE_PROJECT_REPONAME:staging
+
+  deploy_to_render_staging:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - run:
+          name: Deploy staging services on Render
           command: |
-            : "${DOCKERHUB_USERNAME:?Set DOCKERHUB_USERNAME in CircleCI project settings}"
-            : "${DOCKERHUB_PASSWORD:?Set DOCKERHUB_PASSWORD in CircleCI project settings}"
-            echo "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
-      - run: docker compose run server npm run build-ts
+            : "${RENDER_API_KEY:?Set RENDER_API_KEY in CircleCI context}"
+            : "${RENDER_STAGING_SERVICE_ID:?Set RENDER_STAGING_SERVICE_ID in CircleCI context}"
+
+            echo "Triggering Render deploy for staging-server..."
+            DEPLOY_RESPONSE=$(curl -sf \
+              -X POST \
+              -H "Authorization: Bearer $RENDER_API_KEY" \
+              -H "Content-Type: application/json" \
+              "https://api.render.com/v1/services/$RENDER_STAGING_SERVICE_ID/deploys")
+
+            DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | jq -r '.id')
+            echo "Deploy ID: $DEPLOY_ID"
+
+            echo "Polling deploy status..."
+            for i in $(seq 1 60); do
+              STATUS=$(curl -sf \
+                -H "Authorization: Bearer $RENDER_API_KEY" \
+                "https://api.render.com/v1/services/$RENDER_STAGING_SERVICE_ID/deploys/$DEPLOY_ID" \
+                | jq -r '.status')
+
+              echo "  Attempt $i: $STATUS"
+
+              if [ "$STATUS" = "live" ]; then
+                echo "Deploy succeeded"
+                break
+              elif [ "$STATUS" = "deactivated" ] || [ "$STATUS" = "build_failed" ] || [ "$STATUS" = "update_failed" ] || [ "$STATUS" = "canceled" ]; then
+                echo "Deploy failed with status: $STATUS" >&2
+                exit 1
+              fi
+
+              sleep 10
+            done
+
+            if [ "$STATUS" != "live" ]; then
+              echo "Timed out waiting for deploy" >&2
+              exit 1
+            fi
+
+            # Deploy worker if service ID is set
+            if [ -n "$RENDER_STAGING_WORKER_SERVICE_ID" ]; then
+              echo "Triggering Render deploy for staging-worker..."
+              curl -sf \
+                -X POST \
+                -H "Authorization: Bearer $RENDER_API_KEY" \
+                -H "Content-Type: application/json" \
+                "https://api.render.com/v1/services/$RENDER_STAGING_WORKER_SERVICE_ID/deploys"
+            fi
+
+  promote_to_production:
+    machine: true
+    working_directory: ~/src
+
+    steps:
       - run:
-          name: Install required tools
-          command: sudo apt-get update && sudo apt-get install -y jq
+          name: Log in to GHCR
+          command: echo "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
       - run:
-          name: Fix permissions and prepare for Heroku
+          name: Promote staging image to production
           command: |
-            # Fix permissions from Docker
-            sudo chown -R $USER:$USER ./server
+            docker pull ghcr.io/$GHCR_USERNAME/$CIRCLE_PROJECT_REPONAME:staging
+            docker tag ghcr.io/$GHCR_USERNAME/$CIRCLE_PROJECT_REPONAME:staging ghcr.io/$GHCR_USERNAME/$CIRCLE_PROJECT_REPONAME:production
+            docker push ghcr.io/$GHCR_USERNAME/$CIRCLE_PROJECT_REPONAME:production
+      - run:
+          name: Deploy production services on Render
+          command: |
+            : "${RENDER_API_KEY:?Set RENDER_API_KEY in CircleCI context}"
+            : "${RENDER_PRODUCTION_SERVICE_ID:?Set RENDER_PRODUCTION_SERVICE_ID in CircleCI context}"
 
-            # Create a deployment directory structure
-            mkdir -p ./server/deploy/dist
+            echo "Triggering Render deploy for production-server..."
+            DEPLOY_RESPONSE=$(curl -sf \
+              -X POST \
+              -H "Authorization: Bearer $RENDER_API_KEY" \
+              -H "Content-Type: application/json" \
+              "https://api.render.com/v1/services/$RENDER_PRODUCTION_SERVICE_ID/deploys")
 
-            # Copy compiled files and dependencies
-            cp -r ./server/dist/* ./server/deploy/dist/
+            DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | jq -r '.id')
+            echo "Deploy ID: $DEPLOY_ID"
 
-            # Copy Sequelize configuration files
-            cp ./server/.sequelizerc ./server/deploy/
+            echo "Polling deploy status..."
+            for i in $(seq 1 60); do
+              STATUS=$(curl -sf \
+                -H "Authorization: Bearer $RENDER_API_KEY" \
+                "https://api.render.com/v1/services/$RENDER_PRODUCTION_SERVICE_ID/deploys/$DEPLOY_ID" \
+                | jq -r '.status')
 
-            # Copy package files but modify the build script
-            cat ./server/package.json | jq '.scripts.build = "npm run migrate"' > ./server/deploy/package.json
-            cp ./server/package-lock.json ./server/deploy/ || true
+              echo "  Attempt $i: $STATUS"
 
-            # Create Procfile that skips build entirely and properly runs migrations
-            echo "release: npm run env:check && npx sequelize-cli --options-path=.sequelizerc db:migrate" > ./server/deploy/Procfile
-            echo "web: node dist/server.js" >> ./server/deploy/Procfile
-            echo "worker: node dist/worker.js" >> ./server/deploy/Procfile
+              if [ "$STATUS" = "live" ]; then
+                echo "Deploy succeeded"
+                break
+              elif [ "$STATUS" = "deactivated" ] || [ "$STATUS" = "build_failed" ] || [ "$STATUS" = "update_failed" ] || [ "$STATUS" = "canceled" ]; then
+                echo "Deploy failed with status: $STATUS" >&2
+                exit 1
+              fi
 
-            # Create .slugignore
-            echo "src/" > ./server/deploy/.slugignore
-      - persist_to_workspace:
-          root: ~/src
-          paths:
-            - server/deploy
+              sleep 10
+            done
+
+            if [ "$STATUS" != "live" ]; then
+              echo "Timed out waiting for deploy" >&2
+              exit 1
+            fi
+
+            # Deploy worker if service ID is set
+            if [ -n "$RENDER_PRODUCTION_WORKER_SERVICE_ID" ]; then
+              echo "Triggering Render deploy for production-worker..."
+              curl -sf \
+                -X POST \
+                -H "Authorization: Bearer $RENDER_API_KEY" \
+                -H "Content-Type: application/json" \
+                "https://api.render.com/v1/services/$RENDER_PRODUCTION_WORKER_SERVICE_ID/deploys"
+            fi
 
   lint-server:
     machine: true
@@ -142,7 +235,7 @@ jobs:
 
     steps:
       - checkout
-      - run: touch ./server/.env # env files have to exist for docker compose to work
+      - run: touch ./server/.env
       - run:
           name: Authenticate with Docker Hub
           command: |
@@ -157,7 +250,7 @@ jobs:
 
     steps:
       - checkout
-      - run: touch ./server/.env # env files have to exist for docker compose to work
+      - run: touch ./server/.env
       - run:
           name: Authenticate with Docker Hub
           command: |
@@ -165,157 +258,3 @@ jobs:
             : "${DOCKERHUB_PASSWORD:?Set DOCKERHUB_PASSWORD in CircleCI project settings}"
             echo "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
       - run: docker compose run client npm test
-
-  deploy_to_heroku_staging:
-    docker:
-      - image: cimg/base:stable
-    steps:
-      - checkout
-      - run:
-          name: Abort staging deploy when env vars are missing
-          command: |
-            missing=""
-            for var in HEROKU_STAGING_APP_NAME HEROKU_STAGING_EMAIL HEROKU_STAGING_API_KEY; do
-              if [ -z "${!var:-}" ]; then
-                missing="$missing $var"
-              fi
-            done
-            if [ -n "$missing" ]; then
-              echo "Skipping staging deploy. Missing env vars:$missing"
-              circleci step halt
-            fi
-      - attach_workspace:
-          at: ~/src
-      - run:
-          name: Install Heroku CLI
-          command: curl https://cli-assets.heroku.com/install.sh | sh
-      - run:
-          name: Install release parsing tools
-          command: sudo apt-get update && sudo apt-get install -y jq
-      - run:
-          name: Deploy to Heroku staging
-          command: |
-            : "${HEROKU_STAGING_APP_NAME:?HEROKU_STAGING_APP_NAME is required for staging deploys}"
-            : "${HEROKU_STAGING_EMAIL:?HEROKU_STAGING_EMAIL is required for staging deploys}"
-            : "${HEROKU_STAGING_API_KEY:?HEROKU_STAGING_API_KEY is required for staging deploys}"
-
-            cd ~/src/server/deploy
-            git init
-            git config user.email "ci-build@node-react-scaffold"
-            git config user.name "CircleCI"
-
-            cat > ~/.netrc \<< EOF
-            machine api.heroku.com
-              login $HEROKU_STAGING_EMAIL
-              password $HEROKU_STAGING_API_KEY
-            machine git.heroku.com
-              login $HEROKU_STAGING_EMAIL
-              password $HEROKU_STAGING_API_KEY
-            EOF
-            chmod 600 ~/.netrc
-
-            heroku git:remote -a $HEROKU_STAGING_APP_NAME
-
-            git add -A
-            git commit -m "Build from CircleCI [skip ci]"
-            git push heroku HEAD:refs/heads/master -f
-
-            echo "Waiting for Heroku release to finish…"
-            HEROKU_APP="$HEROKU_STAGING_APP_NAME"
-            HEROKU_API_KEY="$HEROKU_STAGING_API_KEY"
-            RELEASE_STATUS=""
-            for _ in $(seq 1 30); do
-              RELEASE_STATUS=$(curl -sf \
-                -H "Authorization: Bearer $HEROKU_API_KEY" \
-                -H "Accept: application/vnd.heroku+json; version=3" \
-                "https://api.heroku.com/apps/$HEROKU_APP/releases" \
-                | jq -r 'sort_by(.created_at) | last | .status // empty')
-
-              if [ "$RELEASE_STATUS" = "succeeded" ]; then
-                echo "Heroku release succeeded ✅"
-                break
-              elif [ "$RELEASE_STATUS" = "failed" ]; then
-                echo "Heroku release FAILED ❌" >&2
-                heroku releases --app "$HEROKU_APP" --json | jq -r '.[0] | "Release v\(.version): \(.description) — Status: \(.status)"' || true
-                exit 1
-              fi
-
-              sleep 5
-            done
-
-            if [ "$RELEASE_STATUS" != "succeeded" ]; then
-              echo "Timed out waiting for Heroku release status." >&2
-              exit 1
-            fi
-
-  promote_to_heroku_production:
-    docker:
-      - image: cimg/base:stable
-    steps:
-      - checkout
-      - run:
-          name: Abort production promote when env vars are missing
-          command: |
-            missing=""
-            for var in HEROKU_STAGING_APP_NAME HEROKU_APP_NAME HEROKU_STAGING_EMAIL HEROKU_STAGING_API_KEY; do
-              if [ -z "${!var:-}" ]; then
-                missing="$missing $var"
-              fi
-            done
-            if [ -n "$missing" ]; then
-              echo "Skipping production promotion. Missing env vars:$missing"
-              circleci step halt
-            fi
-      - run:
-          name: Install Heroku CLI
-          command: curl https://cli-assets.heroku.com/install.sh | sh
-      - run:
-          name: Install release parsing tools
-          command: sudo apt-get update && sudo apt-get install -y jq
-      - run:
-          name: Promote staging slug to production
-          command: |
-            : "${HEROKU_STAGING_APP_NAME:?HEROKU_STAGING_APP_NAME is required for promotions}"
-            : "${HEROKU_APP_NAME:?HEROKU_APP_NAME is required for promotions}"
-            : "${HEROKU_STAGING_EMAIL:?HEROKU_STAGING_EMAIL is required for promotions}"
-            : "${HEROKU_STAGING_API_KEY:?HEROKU_STAGING_API_KEY is required for promotions}"
-
-            cat > ~/.netrc \<< EOF
-            machine api.heroku.com
-              login $HEROKU_STAGING_EMAIL
-              password $HEROKU_STAGING_API_KEY
-            machine git.heroku.com
-              login $HEROKU_STAGING_EMAIL
-              password $HEROKU_STAGING_API_KEY
-            EOF
-            chmod 600 ~/.netrc
-
-            heroku pipelines:promote --app $HEROKU_STAGING_APP_NAME --to $HEROKU_APP_NAME
-
-            echo "Waiting for Heroku release to finish…"
-            HEROKU_APP="$HEROKU_APP_NAME"
-            HEROKU_API_KEY="$HEROKU_STAGING_API_KEY"
-            RELEASE_STATUS=""
-            for _ in $(seq 1 30); do
-              RELEASE_STATUS=$(curl -sf \
-                -H "Authorization: Bearer $HEROKU_API_KEY" \
-                -H "Accept: application/vnd.heroku+json; version=3" \
-                "https://api.heroku.com/apps/$HEROKU_APP/releases" \
-                | jq -r 'sort_by(.created_at) | last | .status // empty')
-
-              if [ "$RELEASE_STATUS" = "succeeded" ]; then
-                echo "Heroku release succeeded ✅"
-                break
-              elif [ "$RELEASE_STATUS" = "failed" ]; then
-                echo "Heroku release FAILED ❌" >&2
-                heroku releases --app "$HEROKU_APP" --json | jq -r '.[0] | "Release v\(.version): \(.description) — Status: \(.status)"' || true
-                exit 1
-              fi
-
-              sleep 5
-            done
-
-            if [ "$RELEASE_STATUS" != "succeeded" ]; then
-              echo "Timed out waiting for Heroku release status." >&2
-              exit 1
-            fi

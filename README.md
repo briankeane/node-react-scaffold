@@ -29,7 +29,8 @@ A production-ready full-stack TypeScript starter with authentication, protected 
 
 - Docker Compose for local development
 - Automatic port management (multiple instances supported)
-- CircleCI CI/CD pipeline
+- Render for staging and production hosting
+- CircleCI CI/CD pipeline (build, test, deploy to Render)
 - GitHub Actions release PR automation
 - Claude Code skills for AI-assisted development
 
@@ -210,21 +211,89 @@ Available at:
 
 Each endpoint module has a co-located `.api.docs.yaml` file. See `server/src/api/auth/` for the reference pattern.
 
-## Setting up CircleCI
+## Deploying to Render
+
+### Overview
+
+The project uses [Render](https://render.com) for staging and production hosting. Docker images are built by CircleCI, pushed to GitHub Container Registry (GHCR), and deployed to Render via its API.
+
+**Pipeline flow:**
+
+1. Push to `develop` → CircleCI builds & tests → Docker image pushed to GHCR as `:staging` → deployed to Render staging
+2. Push to `main` → CircleCI builds & tests → `:staging` image promoted to `:production` → deployed to Render production
+
+### Initial Render Setup
+
+1. **Create a Render account** at https://render.com
+
+2. **Update `render.yaml`** — Replace `YOUR_ORG/YOUR_REPO` with your GitHub org and repo name (e.g. `ghcr.io/myorg/myapp:staging`)
+
+3. **Create a PostgreSQL database** in Render for each environment (staging and production)
+
+4. **Create environment variable groups** in the Render dashboard:
+   - `staging` — with `DATABASE_URL`, `JWT_SECRET`, and any other env vars from `server/.env-example`
+   - `production` — same keys, production values
+
+5. **Create the services** using the Render Blueprint:
+   - Go to Render Dashboard → **Blueprints** → **New Blueprint Instance**
+   - Connect your GitHub repo and select the `render.yaml` file
+   - Render will create the staging-server, staging-worker, production-server, and production-worker services
+
+6. **Note the service IDs** — You'll need these for CircleCI. Find them in each service's Settings page URL (the `srv-xxxxx` value).
+
+### CircleCI Setup
 
 1. Sign up at https://circleci.com/ and connect your GitHub repository
+
 2. Add these environment variables in CircleCI project settings:
    - `DOCKERHUB_USERNAME` — Docker Hub username
    - `DOCKERHUB_PASSWORD` — Docker Hub access token
-3. The CI pipeline runs server build + tests, linting, and client tests
 
-## Release Workflow
+3. Create a **`ghcr`** context in CircleCI with:
+   - `GHCR_USERNAME` — Your GitHub username or org name
+   - `GHCR_TOKEN` — A GitHub Personal Access Token with `write:packages` scope
+
+4. Create a **`render`** context in CircleCI with:
+   - `RENDER_API_KEY` — Render API key (from Account Settings → API Keys)
+   - `RENDER_STAGING_SERVICE_ID` — Service ID for `staging-server`
+   - `RENDER_STAGING_WORKER_SERVICE_ID` — Service ID for `staging-worker` (optional)
+   - `RENDER_PRODUCTION_SERVICE_ID` — Service ID for `production-server`
+   - `RENDER_PRODUCTION_WORKER_SERVICE_ID` — Service ID for `production-worker` (optional)
+
+### Deploying to Staging
+
+Merge a PR into `develop`. CircleCI will automatically:
+1. Build and test the server
+2. Build the production Docker image
+3. Push it to GHCR tagged as `:staging`
+4. Trigger a deploy on Render staging
+5. Wait for the deploy to go live
+
+### Deploying to Production
+
+Merge `develop` into `main`. CircleCI will automatically:
+1. Build and test the server
+2. Pull the `:staging` image, re-tag it as `:production`, and push to GHCR
+3. Trigger a deploy on Render production
+4. Wait for the deploy to go live
+
+### Release Workflow
 
 To create a release PR from `develop` to `main`:
 
 1. Go to GitHub Actions -> "Create Release PR" -> Run workflow
 2. Choose version bump type (patch/minor/major) and enter a release title
 3. A PR is auto-created with the version bump and commit summary
+
+### Production Docker Image
+
+To build the production image locally for testing:
+
+```bash
+cd server
+docker build -f Dockerfile.production -t myapp:local .
+docker run -p 10020:10020 --env-file .env myapp:local
+```
 
 ## Contributing
 

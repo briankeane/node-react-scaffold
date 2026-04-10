@@ -89,16 +89,6 @@ generate-migration:
 worker-debug:
 	$(COMPOSE) exec server npm run worker:debug
 
-# --- Heroku DB Backup/Restore (uncomment and configure) ---
-# HEROKU_PROD_APP := your-prod-app
-# HEROKU_STAGING_APP := your-staging-app
-#
-# db-backup:
-# 	heroku pg:backups:capture --app $(HEROKU_PROD_APP)
-#
-# db-restore-staging:
-# 	heroku pg:backups:restore $(HEROKU_PROD_APP)::b001 DATABASE_URL --app $(HEROKU_STAGING_APP) --confirm $(HEROKU_STAGING_APP)
-
 .PHONY: find-open-ports install launch launch-detached terminate restart logs logs-server logs-client \
 	test-server test-server-file test-server-with-logging test-server-debug test-client \
 	lint-server lint-client prettier-server prettier-client \
