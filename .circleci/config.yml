@@ -90,30 +90,30 @@ jobs:
       - run:
           name: Install required tools
           command: sudo apt-get update && sudo apt-get install -y jq
-      - run: 
+      - run:
           name: Fix permissions and prepare for Heroku
           command: |
             # Fix permissions from Docker
             sudo chown -R $USER:$USER ./server
-            
+
             # Create a deployment directory structure
             mkdir -p ./server/deploy/dist
-            
+
             # Copy compiled files and dependencies
             cp -r ./server/dist/* ./server/deploy/dist/
-            
+
             # Copy Sequelize configuration files
             cp ./server/.sequelizerc ./server/deploy/
-            
+
             # Copy package files but modify the build script
             cat ./server/package.json | jq '.scripts.build = "npm run migrate"' > ./server/deploy/package.json
             cp ./server/package-lock.json ./server/deploy/ || true
-            
+
             # Create Procfile that skips build entirely and properly runs migrations
             echo "release: npm run env:check && npx sequelize-cli --options-path=.sequelizerc db:migrate" > ./server/deploy/Procfile
             echo "web: node dist/server.js" >> ./server/deploy/Procfile
             echo "worker: node dist/worker.js" >> ./server/deploy/Procfile
-            
+
             # Create .slugignore
             echo "src/" > ./server/deploy/.slugignore
       - persist_to_workspace:
@@ -150,7 +150,7 @@ jobs:
             : "${DOCKERHUB_PASSWORD:?Set DOCKERHUB_PASSWORD in CircleCI project settings}"
             echo "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
       - run: docker compose run client npm run lint
-  
+
   test-client:
     machine: true
     working_directory: ~/src

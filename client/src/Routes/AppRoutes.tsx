@@ -1,14 +1,14 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import App from "../App";
-import { AuthProvider } from "../Contexts/AuthProvider";
-import DashboardPage from "../Pages/DashboardPage/DashboardPage";
-import LoginPage from "../Pages/LoginPage/LoginPage";
-import SignupPage from "../Pages/SignupPage/SignupPage";
-import ProtectedRoute from "./ProtectedRoute";
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import App from '../App';
+import { AuthProvider } from '../Contexts/AuthProvider';
+import DashboardPage from '../Pages/DashboardPage/DashboardPage';
+import LoginPage from '../Pages/LoginPage/LoginPage';
+import SignupPage from '../Pages/SignupPage/SignupPage';
+import ProtectedRoute from './ProtectedRoute';
 
 const router = createBrowserRouter([
   {
-    path: "/",
+    path: '/',
     element: (
       <AuthProvider>
         <App />
@@ -20,15 +20,15 @@ const router = createBrowserRouter([
         element: <LoginPage />,
       },
       {
-        path: "login",
+        path: 'login',
         element: <LoginPage />,
       },
       {
-        path: "signup",
+        path: 'signup',
         element: <SignupPage />,
       },
       {
-        path: "dashboard",
+        path: 'dashboard',
         element: (
           <ProtectedRoute>
             <DashboardPage />

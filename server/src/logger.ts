@@ -10,8 +10,7 @@ function enableLogger(): void {
 
 function log(...args: unknown[]): void {
   if (
-    (process.env.NODE_ENV !== "test" ||
-      process.env.LOGGING_LEVEL === "verbose") &&
+    (process.env.NODE_ENV !== 'test' || process.env.LOGGING_LEVEL === 'verbose') &&
     !_suppressOutput
   ) {
     console.log(...args);
@@ -21,7 +20,7 @@ function log(...args: unknown[]): void {
 function error(...args: unknown[]): void {
   if (
     !_suppressOutput &&
-    (process.env.NODE_ENV !== "test" || process.env.LOGGING_LEVEL === "verbose")
+    (process.env.NODE_ENV !== 'test' || process.env.LOGGING_LEVEL === 'verbose')
   ) {
     console.error(...args);
   }

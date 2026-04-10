@@ -1,7 +1,7 @@
 // import cron from "node-cron";
-import logger from "../logger";
-import { readyPromise as queueReadyPromise, isRedisEnabled } from "../queue";
-import { ensureRequiredEnvVars } from "./checkEnv";
+import logger from '../logger';
+import { readyPromise as queueReadyPromise, isRedisEnabled } from '../queue';
+import { ensureRequiredEnvVars } from './checkEnv';
 
 export async function startWorker(): Promise<void> {
   ensureRequiredEnvVars();
@@ -26,19 +26,19 @@ export async function startWorker(): Promise<void> {
     //   return { success: true };
     // });
 
-    logger.log("Queue workers initialized");
+    logger.log('Queue workers initialized');
   }
 
-  logger.log("Worker setup complete.");
+  logger.log('Worker setup complete.');
 
   // --- Graceful Shutdown ---
   const shutdown = () => {
-    logger.log("Worker shutting down...");
+    logger.log('Worker shutting down...');
     process.exit(0);
   };
 
-  process.on("SIGTERM", shutdown);
-  process.on("SIGINT", shutdown);
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 }
 
 if (require.main === module) {

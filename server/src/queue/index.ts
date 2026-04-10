@@ -1,5 +1,5 @@
-import { Queue, Worker, Job } from "bullmq";
-import logger from "../logger";
+import { Queue, Worker, Job } from 'bullmq';
+import logger from '../logger';
 
 const REDIS_URL = process.env.REDIS_URL;
 
@@ -17,7 +17,7 @@ const defaultJobOptions = {
   removeOnFail: 50,
   attempts: 3,
   backoff: {
-    type: "exponential" as const,
+    type: 'exponential' as const,
     delay: 2000,
   },
 };
@@ -26,13 +26,13 @@ function getRedisConnection() {
   if (!REDIS_URL) return null;
 
   const redisUrl = new URL(REDIS_URL);
-  const isTLS = redisUrl.protocol === "rediss:";
+  const isTLS = redisUrl.protocol === 'rediss:';
 
   return {
     host: redisUrl.hostname,
     port: parseInt(redisUrl.port) || 6379,
     password: redisUrl.password || undefined,
-    db: process.env.NODE_ENV === "test" ? 1 : 0,
+    db: process.env.NODE_ENV === 'test' ? 1 : 0,
     ...(isTLS ? { tls: {} } : {}),
   };
 }
@@ -61,17 +61,17 @@ export function createWorker(
 
 export const readyPromise: Promise<void> = (() => {
   if (!connection) {
-    logger.log("Skipping Redis setup... REDIS_URL not found");
+    logger.log('Skipping Redis setup... REDIS_URL not found');
     return Promise.resolve();
   }
 
   return new Promise<void>((resolve, reject) => {
-    const testQueue = new Queue("_redis_health_check", { connection });
+    const testQueue = new Queue('_redis_health_check', { connection });
 
     testQueue
       .waitUntilReady()
       .then(() => {
-        logger.log("Redis connection established");
+        logger.log('Redis connection established');
         resolve();
       })
       .catch(reject)

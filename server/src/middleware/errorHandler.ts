@@ -1,5 +1,5 @@
-import { NextFunction, Request, Response } from "express";
-import logger from "../logger";
+import { NextFunction, Request, Response } from 'express';
+import logger from '../logger';
 import {
   AppError,
   AuthenticationError,
@@ -8,12 +8,11 @@ import {
   PermissionError,
   ServerError,
   ValidationError,
-} from "../utils/errors";
+} from '../utils/errors';
 
 function isSequelizeValidationError(error: Error): boolean {
   return (
-    error.name === "SequelizeValidationError" ||
-    error.name === "SequelizeUniqueConstraintError"
+    error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError'
   );
 }
 
@@ -35,8 +34,7 @@ export function errorHandler(
     return next(err as Error);
   }
 
-  const error =
-    err instanceof Error ? (err as ErrorWithData) : new Error(String(err));
+  const error = err instanceof Error ? (err as ErrorWithData) : new Error(String(err));
 
   let statusCode = 500;
 
@@ -59,14 +57,12 @@ export function errorHandler(
   if (isSequelizeValidationError(error)) {
     statusCode = 400;
     const validationError = error as SequelizeValidationError;
-    const validationErrors: ValidationErrorItem[] = validationError.errors.map(
-      (item) => ({
-        field: item.path,
-        message: item.message,
-      }),
-    );
+    const validationErrors: ValidationErrorItem[] = validationError.errors.map((item) => ({
+      field: item.path,
+      message: item.message,
+    }));
 
-    logger.error("Validation Error", {
+    logger.error('Validation Error', {
       errors: validationErrors,
       path: req.path,
       method: req.method,
@@ -75,14 +71,14 @@ export function errorHandler(
 
     return res.status(statusCode).json({
       error: {
-        message: "Validation error",
+        message: 'Validation error',
         data: validationErrors,
       },
     });
   }
 
   if (error instanceof AppError) {
-    logger.error(`${error.name || "Error"}: ${error.message}`, {
+    logger.error(`${error.name || 'Error'}: ${error.message}`, {
       statusCode,
       stack: error.stack,
       data: error.data,
@@ -91,7 +87,7 @@ export function errorHandler(
       userId: (req as { user?: { id?: string } }).user?.id,
     });
   } else {
-    logger.error("Unhandled Server Error", {
+    logger.error('Unhandled Server Error', {
       error: error.message,
       stack: error.stack,
       path: req.path,
@@ -102,7 +98,7 @@ export function errorHandler(
 
   const errorResponse: { error: { message: string; data?: unknown } } = {
     error: {
-      message: error.message || "An unexpected error occurred",
+      message: error.message || 'An unexpected error occurred',
     },
   };
 
@@ -110,9 +106,9 @@ export function errorHandler(
     errorResponse.error.data = error.data;
   }
 
-  const isProd = process.env.NODE_ENV === "production";
+  const isProd = process.env.NODE_ENV === 'production';
   if (isProd && statusCode >= 500) {
-    errorResponse.error.message = "Internal Server Error";
+    errorResponse.error.message = 'Internal Server Error';
   }
 
   return res.status(statusCode).json(errorResponse);

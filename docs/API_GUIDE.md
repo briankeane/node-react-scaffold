@@ -8,9 +8,9 @@ This guide provides an overview of the API, its core concepts, and how to use it
 
 ## Base URLs
 
-| Environment | URL |
-|-------------|-----|
-| Development | http://localhost:10020 |
+| Environment | URL                         |
+| ----------- | --------------------------- |
+| Development | http://localhost:10020      |
 | Production  | https://api.your-domain.com |
 
 All API endpoints are prefixed with `/v1/` to indicate the API version.
@@ -85,16 +85,16 @@ All API errors follow a consistent format:
 
 **Common HTTP status codes:**
 
-| Status | Description |
-|--------|-------------|
-| 200 | Success |
-| 201 | Resource created |
-| 400 | Bad request (invalid parameters) |
-| 401 | Unauthorized (authentication required) |
-| 403 | Forbidden (insufficient permissions) |
-| 404 | Resource not found |
-| 409 | Conflict (e.g., resource already exists) |
-| 500 | Server error |
+| Status | Description                              |
+| ------ | ---------------------------------------- |
+| 200    | Success                                  |
+| 201    | Resource created                         |
+| 400    | Bad request (invalid parameters)         |
+| 401    | Unauthorized (authentication required)   |
+| 403    | Forbidden (insufficient permissions)     |
+| 404    | Resource not found                       |
+| 409    | Conflict (e.g., resource already exists) |
+| 500    | Server error                             |
 
 ## Best Practices
 

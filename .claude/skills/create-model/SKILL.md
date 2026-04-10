@@ -41,11 +41,11 @@ Location: `server/src/db/migrations/[timestamp]-[description].js`
 Timestamp format: `YYYYMMDDHHMMSS` (e.g., `20260301000001`)
 
 ```javascript
-"use strict";
+'use strict';
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable("tableName", {
+    await queryInterface.createTable('tableName', {
       id: {
         allowNull: false,
         primaryKey: true,
@@ -56,24 +56,24 @@ module.exports = {
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,
-        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
       },
       updatedAt: {
         allowNull: false,
         type: Sequelize.DATE,
-        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
       },
     });
 
     // Add indexes as needed
-    await queryInterface.addIndex("tableName", {
-      fields: ["fieldName"],
-      name: "table_name_field_name",
+    await queryInterface.addIndex('tableName', {
+      fields: ['fieldName'],
+      name: 'table_name_field_name',
     });
   },
 
   async down(queryInterface) {
-    await queryInterface.dropTable("tableName");
+    await queryInterface.dropTable('tableName');
   },
 };
 ```
@@ -91,13 +91,10 @@ import {
   InferAttributes,
   InferCreationAttributes,
   Model,
-} from "sequelize";
-import sequelize from "../../sequelize";
+} from 'sequelize';
+import sequelize from '../../sequelize';
 
-class ModelName extends Model<
-  InferAttributes<ModelName>,
-  InferCreationAttributes<ModelName>
-> {
+class ModelName extends Model<InferAttributes<ModelName>, InferCreationAttributes<ModelName>> {
   // Required fields
   declare fieldName: string;
 
@@ -130,7 +127,7 @@ ModelName.init(
   },
   {
     sequelize,
-    modelName: "modelName", // camelCase
+    modelName: 'modelName', // camelCase
   },
 );
 
@@ -142,8 +139,8 @@ export default ModelName;
 Location: `server/src/db/models/[modelName].model/index.ts`
 
 ```typescript
-export { default } from "./modelName.model";
-export { default as ModelName } from "./modelName.model";
+export { default } from './modelName.model';
+export { default as ModelName } from './modelName.model';
 ```
 
 ### 4. Register the Model
@@ -156,12 +153,12 @@ Add associations directly in the model file or create `server/src/db/association
 
 ```typescript
 ModelName.belongsTo(RelatedModel, {
-  foreignKey: "relatedModelId",
-  as: "relatedModel",
+  foreignKey: 'relatedModelId',
+  as: 'relatedModel',
 });
 
 RelatedModel.hasMany(ModelName, {
-  foreignKey: "relatedModelId",
+  foreignKey: 'relatedModelId',
 });
 ```
 
@@ -171,7 +168,7 @@ Add a factory function in `server/src/test/testDataGenerator.ts`:
 
 ```typescript
 export async function createModelName(
-  db: typeof import("../db"),
+  db: typeof import('../db'),
   overrides: Partial<ModelNameAttributes> = {},
 ) {
   return db.models.ModelName.create({
@@ -184,6 +181,7 @@ export async function createModelName(
 ## Model Testing
 
 **Only test complex models** that have:
+
 - Virtual properties
 - Custom instance methods
 - Hooks (beforeCreate, afterUpdate, etc.)
@@ -194,13 +192,13 @@ Simple models with just data fields don't need tests.
 ### Test Pattern
 
 ```typescript
-import { assert } from "chai";
-import db from "../..";
-import { createModelName } from "../../../test/testDataGenerator";
+import { assert } from 'chai';
+import db from '../..';
+import { createModelName } from '../../../test/testDataGenerator';
 
-describe("ModelName Model", function () {
-  describe("customMethod", function () {
-    it("returns expected value", async function () {
+describe('ModelName Model', function () {
+  describe('customMethod', function () {
+    it('returns expected value', async function () {
       const instance = await createModelName(db);
       assert.isTrue(instance.customMethod());
     });
@@ -246,6 +244,7 @@ relatedModelId: {
 ### Uppercase Constraint (for codes)
 
 In migration:
+
 ```javascript
 await queryInterface.sequelize.query(`
   ALTER TABLE "tableName"

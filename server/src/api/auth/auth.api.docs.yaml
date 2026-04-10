@@ -31,7 +31,7 @@ paths:
                   type: string
                   example: Doe
       responses:
-        "201":
+        '201':
           description: User created successfully
           content:
             application/json:
@@ -39,12 +39,12 @@ paths:
                 type: object
                 properties:
                   user:
-                    $ref: "#/components/schemas/UserJwtRepr"
+                    $ref: '#/components/schemas/UserJwtRepr'
                   token:
                     type: string
-        "400":
+        '400':
           description: Missing required fields
-        "409":
+        '409':
           description: A user with this email already exists
 
   /v1/auth/login:
@@ -71,7 +71,7 @@ paths:
                   type: string
                   example: mypassword123
       responses:
-        "200":
+        '200':
           description: Login successful
           content:
             application/json:
@@ -79,12 +79,12 @@ paths:
                 type: object
                 properties:
                   user:
-                    $ref: "#/components/schemas/UserJwtRepr"
+                    $ref: '#/components/schemas/UserJwtRepr'
                   token:
                     type: string
-        "400":
+        '400':
           description: Missing required fields
-        "401":
+        '401':
           description: Invalid email or password
 
   /v1/auth/google:
@@ -108,7 +108,7 @@ paths:
                   type: string
                   description: Google ID token from client-side sign-in
       responses:
-        "200":
+        '200':
           description: Authentication successful
           content:
             application/json:
@@ -116,12 +116,12 @@ paths:
                 type: object
                 properties:
                   user:
-                    $ref: "#/components/schemas/UserJwtRepr"
+                    $ref: '#/components/schemas/UserJwtRepr'
                   token:
                     type: string
-        "400":
+        '400':
           description: Google sign-in not configured or missing idToken
-        "401":
+        '401':
           description: Invalid Google ID token
 
 components:

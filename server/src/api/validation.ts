@@ -1,28 +1,25 @@
-import { NextFunction, Request, RequestHandler, Response } from "express";
-import { ErrorMessages, ValidationError } from "../utils/errors";
+import { NextFunction, Request, RequestHandler, Response } from 'express';
+import { ErrorMessages, ValidationError } from '../utils/errors';
 
-type RequestProperty = "query" | "body";
+type RequestProperty = 'query' | 'body';
 
 export function checkQueryFor(strArray: string[]) {
-  return checkFor("query", strArray);
+  return checkFor('query', strArray);
 }
 
 export function checkBodyFor(strArray: string[]) {
-  return checkFor("body", strArray);
+  return checkFor('body', strArray);
 }
 
 function checkFor(name: RequestProperty, strArray: string[]): RequestHandler {
   return (req, res, next) => {
     const obj = req[name] as Record<string, unknown>;
-    const missing = strArray.filter(
-      (str) => !Object.prototype.hasOwnProperty.call(obj, str),
-    );
+    const missing = strArray.filter((str) => !Object.prototype.hasOwnProperty.call(obj, str));
     if (missing.length > 0) {
       return next(
-        new ValidationError(
-          `${capitalize(name)} parameter(s) missing: ${missing.join(", ")}`,
-          { missing },
-        ),
+        new ValidationError(`${capitalize(name)} parameter(s) missing: ${missing.join(', ')}`, {
+          missing,
+        }),
       );
     }
     return next();
@@ -31,13 +28,11 @@ function checkFor(name: RequestProperty, strArray: string[]): RequestHandler {
 
 export function checkBodyForAtLeastOneOf(strArray: string[]): RequestHandler {
   return (req, res, next) => {
-    const existing = strArray.filter((str) =>
-      Object.prototype.hasOwnProperty.call(req.body, str),
-    );
+    const existing = strArray.filter((str) => Object.prototype.hasOwnProperty.call(req.body, str));
     if (!existing.length) {
       return next(
         new ValidationError(
-          `Body must include at least one of the following: ${strArray.join(", ")}`,
+          `Body must include at least one of the following: ${strArray.join(', ')}`,
           { existing },
         ),
       );
@@ -48,13 +43,11 @@ export function checkBodyForAtLeastOneOf(strArray: string[]): RequestHandler {
 
 export function checkQueryForAtLeastOneOf(strArray: string[]): RequestHandler {
   return (req, res, next) => {
-    const existing = strArray.filter((str) =>
-      Object.prototype.hasOwnProperty.call(req.query, str),
-    );
+    const existing = strArray.filter((str) => Object.prototype.hasOwnProperty.call(req.query, str));
     if (!existing.length) {
       return next(
         new ValidationError(
-          `Query must include at least one of the following: ${strArray.join(", ")}`,
+          `Query must include at least one of the following: ${strArray.join(', ')}`,
           { existing },
         ),
       );
@@ -63,9 +56,7 @@ export function checkQueryForAtLeastOneOf(strArray: string[]): RequestHandler {
   };
 }
 
-export function checkBodyForAtLeastOneSet(
-  ...strArrays: string[][]
-): RequestHandler {
+export function checkBodyForAtLeastOneSet(...strArrays: string[][]): RequestHandler {
   return (req, res, next) => {
     const missings = strArrays.map((arr) =>
       arr.filter((str) => !Object.prototype.hasOwnProperty.call(req.body, str)),
@@ -75,7 +66,7 @@ export function checkBodyForAtLeastOneSet(
     if (allMissing.length === strArrays.length) {
       return next(
         new ValidationError(
-          `Body parameter(s) missing. This requires a combination like the following: ${strArrays.map((a) => a.join(", ")).join(" | ")}`,
+          `Body parameter(s) missing. This requires a combination like the following: ${strArrays.map((a) => a.join(', ')).join(' | ')}`,
           { details: strArrays },
         ),
       );
@@ -84,9 +75,7 @@ export function checkBodyForAtLeastOneSet(
   };
 }
 
-export function checkBodyForNoExtraFields(
-  allowedFields: string[],
-): RequestHandler {
+export function checkBodyForNoExtraFields(allowedFields: string[]): RequestHandler {
   return (req, res, next) => {
     const extraFields: string[] = [];
     for (const key of Object.keys(req.body)) {
@@ -97,7 +86,7 @@ export function checkBodyForNoExtraFields(
     if (extraFields.length > 0) {
       return next(
         new ValidationError(
-          `Body cannot include the parameters: ${extraFields.join(", ")}. This endpoint accepts the values: ${allowedFields.join(", ")}`,
+          `Body cannot include the parameters: ${extraFields.join(', ')}. This endpoint accepts the values: ${allowedFields.join(', ')}`,
           { extraFields },
         ),
       );
@@ -106,9 +95,7 @@ export function checkBodyForNoExtraFields(
   };
 }
 
-export function checkQueryForNoExtraFields(
-  allowedFields: string[],
-): RequestHandler {
+export function checkQueryForNoExtraFields(allowedFields: string[]): RequestHandler {
   return (req, res, next) => {
     const extraFields: string[] = [];
     for (const key of Object.keys(req.query)) {
@@ -119,7 +106,7 @@ export function checkQueryForNoExtraFields(
     if (extraFields.length > 0) {
       return next(
         new ValidationError(
-          `Query cannot include the parameters: ${extraFields.join(", ")}. This endpoint accepts the values: ${allowedFields.join(", ")}`,
+          `Query cannot include the parameters: ${extraFields.join(', ')}. This endpoint accepts the values: ${allowedFields.join(', ')}`,
           { extraFields },
         ),
       );
@@ -128,17 +115,14 @@ export function checkQueryForNoExtraFields(
   };
 }
 
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function validateUUIDsInParams(paramArray: string[]): RequestHandler {
   return (req, res, next) => {
     for (const paramName of paramArray) {
       const paramValue = req.params[paramName] as string;
       if (paramValue && !UUID_REGEX.test(paramValue)) {
-        return next(
-          new ValidationError(ErrorMessages.invalidUuidFormat(paramName)),
-        );
+        return next(new ValidationError(ErrorMessages.invalidUuidFormat(paramName)));
       }
     }
     return next();
@@ -150,9 +134,7 @@ export function validateUUIDsInQuery(queryArray: string[]): RequestHandler {
     for (const queryName of queryArray) {
       const queryValue = req.query[queryName] as string;
       if (queryValue && !UUID_REGEX.test(queryValue)) {
-        return next(
-          new ValidationError(ErrorMessages.invalidUuidFormat(queryName)),
-        );
+        return next(new ValidationError(ErrorMessages.invalidUuidFormat(queryName)));
       }
     }
     return next();
@@ -164,9 +146,7 @@ export function validateUUIDsInBody(bodyArray: string[]): RequestHandler {
     for (const bodyName of bodyArray) {
       const bodyValue = req.body[bodyName];
       if (bodyValue && !UUID_REGEX.test(bodyValue)) {
-        return next(
-          new ValidationError(ErrorMessages.invalidUuidFormat(bodyName)),
-        );
+        return next(new ValidationError(ErrorMessages.invalidUuidFormat(bodyName)));
       }
     }
     return next();
@@ -179,9 +159,7 @@ export function convertQueryParamToDate(dateParams: string[]): RequestHandler {
       if (req.query[param] !== undefined && req.query[param] !== null) {
         const parsedDate = new Date(req.query[param] as string);
         if (isNaN(parsedDate.getTime())) {
-          return next(
-            new ValidationError(`Invalid Value: ${param} must be a valid date`),
-          );
+          return next(new ValidationError(`Invalid Value: ${param} must be a valid date`));
         }
         (req.query as Record<string, unknown>)[param] = parsedDate;
       }
@@ -196,9 +174,7 @@ export function convertBodyParamToDate(dateParams: string[]): RequestHandler {
       if (req.body[param] !== undefined && req.body[param] !== null) {
         const parsedDate = new Date(req.body[param] as string);
         if (isNaN(parsedDate.getTime())) {
-          return next(
-            new ValidationError(`Invalid Value: ${param} must be a valid date`),
-          );
+          return next(new ValidationError(`Invalid Value: ${param} must be a valid date`));
         }
         req.body[param] = parsedDate;
       }
@@ -207,19 +183,13 @@ export function convertBodyParamToDate(dateParams: string[]): RequestHandler {
   };
 }
 
-export function convertQueryParamToNumber(
-  numberParams: string[],
-): RequestHandler {
+export function convertQueryParamToNumber(numberParams: string[]): RequestHandler {
   return (req, res, next) => {
     for (const param of numberParams) {
       if (req.query[param] !== undefined && req.query[param] !== null) {
         const parsedNumber = Number(req.query[param]);
         if (isNaN(parsedNumber)) {
-          return next(
-            new ValidationError(
-              `Invalid Value: ${param} must be a valid number`,
-            ),
-          );
+          return next(new ValidationError(`Invalid Value: ${param} must be a valid number`));
         }
         (req.query as Record<string, unknown>)[param] = parsedNumber;
       }
@@ -228,18 +198,12 @@ export function convertQueryParamToNumber(
   };
 }
 
-export function checkBodyEnum(
-  field: string,
-  allowedValues: readonly string[],
-): RequestHandler {
-  return checkEnum("body", field, allowedValues);
+export function checkBodyEnum(field: string, allowedValues: readonly string[]): RequestHandler {
+  return checkEnum('body', field, allowedValues);
 }
 
-export function checkQueryEnum(
-  field: string,
-  allowedValues: readonly string[],
-): RequestHandler {
-  return checkEnum("query", field, allowedValues);
+export function checkQueryEnum(field: string, allowedValues: readonly string[]): RequestHandler {
+  return checkEnum('query', field, allowedValues);
 }
 
 function checkEnum(
@@ -250,11 +214,7 @@ function checkEnum(
   return (req, res, next) => {
     const value = (req[objName] as Record<string, unknown>)[field];
     if (!value || !allowedValues.includes(value as string)) {
-      return next(
-        new ValidationError(
-          ErrorMessages.invalidBodyField(field, [...allowedValues]),
-        ),
-      );
+      return next(new ValidationError(ErrorMessages.invalidBodyField(field, [...allowedValues])));
     }
     return next();
   };
@@ -269,11 +229,11 @@ export function oneOf(
     const tryNextMiddleware = (index: number) => {
       if (index >= middlewares.length) {
         if (errors.length === 0) {
-          next(new ValidationError("None of the validation options passed"));
+          next(new ValidationError('None of the validation options passed'));
         } else if (errors.length === 1) {
           next(errors[0]);
         } else {
-          const combinedMessage = errors.map((err) => err.message).join(" OR ");
+          const combinedMessage = errors.map((err) => err.message).join(' OR ');
           const firstError = errors[0];
           firstError.message = combinedMessage;
           next(firstError);

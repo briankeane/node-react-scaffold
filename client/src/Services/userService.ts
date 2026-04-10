@@ -1,4 +1,4 @@
-import apiClient from "./apiClient";
+import apiClient from './apiClient';
 
 export interface User {
   id: string;
@@ -10,13 +10,13 @@ export interface User {
 }
 
 export async function getMe(): Promise<User> {
-  const response = await apiClient.get<User>("/v1/users/me");
+  const response = await apiClient.get<User>('/v1/users/me');
   return response.data;
 }
 
 export async function updateUser(
   userId: string,
-  params: Partial<Pick<User, "displayName" | "firstName" | "lastName">>,
+  params: Partial<Pick<User, 'displayName' | 'firstName' | 'lastName'>>,
 ): Promise<User> {
   const response = await apiClient.put<User>(`/v1/users/${userId}`, params);
   return response.data;

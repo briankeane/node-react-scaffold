@@ -1,36 +1,35 @@
-import { FormEvent, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../Contexts/useAuth";
+import { FormEvent, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../Contexts/useAuth';
 
 export default function SignupPage() {
   const { signup, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   if (isAuthenticated) {
-    navigate("/dashboard", { replace: true });
+    navigate('/dashboard', { replace: true });
     return null;
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError("");
+    setError('');
     setSubmitting(true);
     try {
       await signup({ email, password, firstName, lastName });
-      navigate("/dashboard", { replace: true });
+      navigate('/dashboard', { replace: true });
     } catch (err: unknown) {
       const message =
-        err && typeof err === "object" && "response" in err
-          ? (err as { response: { data: { error: string } } }).response?.data
-              ?.error
-          : "Signup failed";
-      setError(message || "Signup failed");
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response: { data: { error: string } } }).response?.data?.error
+          : 'Signup failed';
+      setError(message || 'Signup failed');
     } finally {
       setSubmitting(false);
     }
@@ -75,7 +74,7 @@ export default function SignupPage() {
           minLength={8}
         />
         <button type="submit" disabled={submitting}>
-          {submitting ? "Signing up..." : "Sign Up"}
+          {submitting ? 'Signing up...' : 'Sign Up'}
         </button>
       </form>
       <p>
