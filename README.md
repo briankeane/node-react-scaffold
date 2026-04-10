@@ -312,6 +312,56 @@ docker build -f Dockerfile.production -t myapp:local .
 docker run -p 10020:10020 --env-file .env myapp:local
 ```
 
+## Client Deployment (Netlify)
+
+### netlify.toml
+
+The scaffold includes a `netlify.toml` in the repo root that configures the build: base directory `client/`, build command `npm run build`, publish directory `dist`, and a SPA catch-all redirect. This is picked up automatically by Netlify.
+
+### Create Netlify Sites
+
+Two sites are needed — staging and production. Run these commands from the project root after logging in with `npx netlify login`:
+
+```bash
+npx netlify sites:create --name <project>-staging --account-slug <your-account-slug>
+npx netlify sites:create --name <project>-production --account-slug <your-account-slug>
+```
+
+> **Note:** To find your account slug, run `npx netlify api listAccountsForUser` and look for the `slug` field (it may differ from the team display name).
+
+### Create a Netlify Personal Access Token
+
+Go to https://app.netlify.com/user/applications#personal-access-tokens and create a token for CI use.
+
+### GitHub Secrets
+
+Add these three secrets to the GitHub repo (Settings → Secrets → Actions):
+
+| Secret                       | Value                                              |
+| ---------------------------- | -------------------------------------------------- |
+| `NETLIFY_AUTH_TOKEN`         | The personal access token from the previous step   |
+| `NETLIFY_STAGING_SITE_ID`   | The Project ID printed when creating the staging site    |
+| `NETLIFY_PRODUCTION_SITE_ID`| The Project ID printed when creating the production site |
+
+### Custom Domains (Optional)
+
+To add custom domains, update the site via the Netlify dashboard (Domain Management → Add custom domain) or via API:
+
+```bash
+curl -X PUT "https://api.netlify.com/api/v1/sites/<site-id>" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"custom_domain": "staging.example.com"}'
+```
+
+Then add a CNAME record with your DNS provider pointing to `<site-name>.netlify.app`.
+
+> **Cloudflare users:** Set the CNAME record to **DNS only** (grey cloud, not proxied) — proxied mode causes **Cloudflare Error 1000**.
+
+### How It Works
+
+The `deploy-staging.yml` and `deploy-production.yml` GitHub Actions workflows include a `deploy-client-to-netlify` job that builds the client and deploys via `npx netlify deploy --dir=dist --prod`. Staging deploys on push to `develop`, production deploys on push to `main`.
+
 ## Contributing
 
 1. Create a feature branch from `develop`
