@@ -16,7 +16,7 @@ class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
   declare verifiedEmail: CreationOptional<string>;
   declare passwordHash: CreationOptional<string>;
   declare profileImageUrl: CreationOptional<string>;
-  declare role: "admin" | "user" | "guest";
+  declare role: CreationOptional<"admin" | "user" | "guest">;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 

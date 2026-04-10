@@ -26,6 +26,10 @@ export class Config implements Partial<EnvVars> {
   _BASIC_AUTH_TOKENS?: string;
   REDIS_URL?: string;
   _REDIS_URL?: string;
+  GOOGLE_CLIENT_ID?: string;
+  _GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  _GOOGLE_CLIENT_SECRET?: string;
 
   constructor(env: string = process.env.NODE_ENV ?? Environments.DEVELOPMENT) {
     this.env = env;

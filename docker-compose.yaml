@@ -1,13 +1,11 @@
 services:
   # Uncomment to enable Redis (also add REDIS_URL=redis://redis:6379 to server/.env)
   # redis:
-  #   container_name: "YOUR_PROJECT_NAME-redis"
   #   image: "redis:alpine"
   #   ports:
   #     - "127.0.0.1:${REDIS_PORT:-6379}:6379"
 
   postgres:
-    container_name: "YOUR_PROJECT_NAME-postgres"
     user: postgres
     build: ./docker/postgres
     ports:
@@ -26,7 +24,6 @@ services:
       start_period: 80s  
 
   server:
-    container_name: "YOUR_PROJECT_NAME-server"
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -47,7 +44,6 @@ services:
       ["npm", "run", "dev"]
 
   worker:
-    container_name: "YOUR_PROJECT_NAME-worker"
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -69,7 +65,6 @@ services:
       ["npm", "run", "worker"]
 
   migrate:
-    container_name: "YOUR_PROJECT_NAME-migrate"
     build:
       context: ./server
       dockerfile: Dockerfile
