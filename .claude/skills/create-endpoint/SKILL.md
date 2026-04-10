@@ -19,7 +19,10 @@ description: Step-by-step workflow for creating REST API endpoints with integrat
 
 ## Reference Implementation
 
-Study `server/src/api/healthCheck/` before creating a new endpoint. It shows the exact file structure, controller pattern, test pattern, and OpenAPI docs format used in this project.
+Study these before creating a new endpoint:
+
+- `server/src/api/auth/` — Full example with authentication, validation, and multiple routes (signup, login, Google OAuth)
+- `server/src/api/healthCheck/` — Minimal example showing the basic file structure and OpenAPI docs format
 
 ## Integration Testing
 
@@ -30,6 +33,7 @@ These are **integration tests** that test all functionality through the full sta
 ### Mocking Rules
 
 **Only mock at borders** — calls to outside services:
+
 - External APIs (Spotify, AWS S3, etc.)
 - Email services
 - Push notification services
@@ -44,7 +48,7 @@ Use `nock` for HTTP mocking (already set up in `mochaSetup.test.ts`).
 Always use `server/src/test/testDataGenerator.ts` for generating test models:
 
 ```typescript
-import { createUser } from "../../test/testDataGenerator";
+import { createUser } from '../../test/testDataGenerator';
 ```
 
 **DO NOT manually create users with hardcoded emails:**
@@ -52,18 +56,18 @@ import { createUser } from "../../test/testDataGenerator";
 ```typescript
 // BAD - can cause duplicate email conflicts between tests
 const adminUser = await db.models.User.create({
-  email: "admin@example.com",
-  role: "admin",
+  email: 'admin@example.com',
+  role: 'admin',
 });
 
 // GOOD - let testDataGenerator handle unique emails
-const adminUser = await createUser(db, { role: "admin" });
+const adminUser = await createUser(db, { role: 'admin' });
 ```
 
 ### Generating Tokens
 
 ```typescript
-import { generateToken } from "../../utils/jwt";
+import { generateToken } from '../../utils/jwt';
 
 const user = await createUser(db);
 const token = await generateToken(user);
@@ -78,28 +82,28 @@ If `generateToken` doesn't exist yet, create a JWT token directly using the user
 ### Test Pattern
 
 ```typescript
-import { assert } from "chai";
-import request from "supertest";
-import app from "../../server";
-import db from "../../db";
-import { createUser } from "../../test/testDataGenerator";
+import { assert } from 'chai';
+import request from 'supertest';
+import app from '../../server';
+import db from '../../db';
+import { createUser } from '../../test/testDataGenerator';
 
-describe("[Module] API", function () {
-  describe("GET /v1/[module]", function () {
-    it("returns the resource", async function () {
-      const user = await createUser(db, { role: "admin" });
+describe('[Module] API', function () {
+  describe('GET /v1/[module]', function () {
+    it('returns the resource', async function () {
+      const user = await createUser(db, { role: 'admin' });
       // generate token for auth...
 
       const res = await request(app)
-        .get("/v1/[module]")
-        .set("Authorization", `Bearer ${token}`)
+        .get('/v1/[module]')
+        .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
       assert.exists(res.body.id);
     });
 
-    it("returns 401 without auth", async function () {
-      await request(app).get("/v1/[module]").expect(401);
+    it('returns 401 without auth', async function () {
+      await request(app).get('/v1/[module]').expect(401);
     });
   });
 });
@@ -126,20 +130,20 @@ GET  /v1/users/:userId      → Get specific user (admin)
 
 ### HTTP Methods & Status Codes
 
-| Method | Purpose | Success Code |
-|--------|---------|-------------|
-| GET | Retrieve resource(s) | 200 |
-| POST | Create resource | 201 |
-| PUT | Update resource | 200 |
-| DELETE | Remove resource | 200 |
+| Method | Purpose              | Success Code |
+| ------ | -------------------- | ------------ |
+| GET    | Retrieve resource(s) | 200          |
+| POST   | Create resource      | 201          |
+| PUT    | Update resource      | 200          |
+| DELETE | Remove resource      | 200          |
 
-| Error Code | Usage |
-|------------|-------|
-| 400 | Validation error, bad request |
-| 401 | Authentication failure |
-| 403 | Permission/authorization failure |
-| 404 | Resource not found |
-| 409 | Conflict error |
+| Error Code | Usage                            |
+| ---------- | -------------------------------- |
+| 400        | Validation error, bad request    |
+| 401        | Authentication failure           |
+| 403        | Permission/authorization failure |
+| 404        | Resource not found               |
+| 409        | Conflict error                   |
 
 ### Authentication & Authorization Middleware Stack
 
@@ -147,19 +151,19 @@ Apply middleware in this order on protected routes:
 
 ```typescript
 router.get(
-  "/:id",
-  authenticate,                           // 1. Validate JWT
-  validateUUIDsInParams(["id"]),          // 2. Validate UUID format
-  requireRoleOfAtLeast("user"),           // 3. Check permissions
-  controller.get,                          // 4. Handler
+  '/:id',
+  authenticate, // 1. Validate JWT
+  validateUUIDsInParams(['id']), // 2. Validate UUID format
+  requireRoleOfAtLeast('user'), // 3. Check permissions
+  controller.get, // 4. Handler
 );
 
 router.post(
-  "/",
+  '/',
   authenticate,
-  checkBodyFor(["name", "email"]),         // Required fields
-  checkBodyForNoExtraFields(["name", "email", "role"]),  // No extra fields
-  validateUUIDsInBody(["relatedId"]),     // UUID format in body
+  checkBodyFor(['name', 'email']), // Required fields
+  checkBodyForNoExtraFields(['name', 'email', 'role']), // No extra fields
+  validateUUIDsInBody(['relatedId']), // UUID format in body
   controller.create,
 );
 ```
@@ -167,17 +171,19 @@ router.post(
 **Permission Middleware Options:**
 
 ```typescript
-requireRoleOfAtLeast("admin")         // Roles: guest < user < admin
-isOperatingOnSelf("userId")           // User can only operate on own data
-oneOf([                               // OR logic
-  isOperatingOnSelf("userId"),
-  requireRoleOfAtLeast("admin"),
-])
+requireRoleOfAtLeast('admin'); // Roles: guest < user < admin
+isOperatingOnSelf('userId'); // User can only operate on own data
+oneOf([
+  // OR logic
+  isOperatingOnSelf('userId'),
+  requireRoleOfAtLeast('admin'),
+]);
 ```
 
 ### Error Handling
 
 **Error Classes (in `utils/errors.ts`):**
+
 - `NotFoundError` → 404
 - `AuthenticationError` → 401
 - `PermissionError` → 403
@@ -187,10 +193,11 @@ oneOf([                               // OR logic
 ```typescript
 // Use centralized error messages
 throw new NotFoundError(ErrorMessages.RESOURCE_NOT_FOUND);
-throw new ValidationError(ErrorMessages.invalidUuidFormat("userId"));
+throw new ValidationError(ErrorMessages.invalidUuidFormat('userId'));
 ```
 
 **Controller pattern:**
+
 ```typescript
 async function handler(req: Request, res: Response, next: NextFunction) {
   try {
@@ -244,11 +251,11 @@ make build-server
 In `server/src/api/routes.ts`, add the new route:
 
 ```typescript
-import moduleApi from "./[module]";
+import moduleApi from './[module]';
 
 function addRoutes(app: Application) {
   // ... existing routes
-  app.use("/v1/[module]", moduleApi);
+  app.use('/v1/[module]', moduleApi);
 }
 ```
 
