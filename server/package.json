@@ -24,12 +24,14 @@
   "dependencies": {
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
+    "bcrypt": "^6.0.0",
     "body-parser": "^2.2.0",
     "bullmq": "^5.70.1",
     "compression": "^1.8.0",
     "express": "^5.1.0",
     "express-bearer-token": "^3.0.0",
     "express-jwt": "^8.5.1",
+    "google-auth-library": "^10.6.2",
     "ioredis": "^5.10.0",
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.0",
@@ -45,6 +47,7 @@
   "devDependencies": {
     "@eslint/js": "^9.25.1",
     "@faker-js/faker": "^10.3.0",
+    "@types/bcrypt": "^6.0.0",
     "@types/body-parser": "^1.19.5",
     "@types/chai": "^5.2.1",
     "@types/compression": "^1.7.5",
