@@ -1,9 +1,13 @@
-import * as bcrypt from 'bcrypt';
-import { OAuth2Client } from 'google-auth-library';
-import config from '../../config/config';
-import User from '../../db/models/user.model';
-import { AuthenticationError, ConflictError, ValidationError } from '../../utils/errors';
-import { generateToken } from '../../utils/jwt';
+import * as bcrypt from "bcrypt";
+import { OAuth2Client } from "google-auth-library";
+import config from "../../config/config";
+import User from "../../db/models/user.model";
+import {
+  AuthenticationError,
+  ConflictError,
+  ValidationError,
+} from "../../utils/errors";
+import { generateToken } from "../../utils/jwt";
 
 const SALT_ROUNDS = 10;
 
@@ -20,14 +24,14 @@ export async function signup({
 }): Promise<{ user: User; token: string }> {
   const existing = await User.findOne({ where: { email } });
   if (existing) {
-    throw new ConflictError('A user with this email already exists');
+    throw new ConflictError("A user with this email already exists");
   }
 
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
   const user = await User.create({
     email,
     firstName,
-    lastName: lastName ?? '',
+    lastName: lastName ?? "",
     passwordHash,
   });
 
@@ -44,12 +48,12 @@ export async function login({
 }): Promise<{ user: User; token: string }> {
   const user = await User.findOne({ where: { email } });
   if (!user || !user.passwordHash) {
-    throw new AuthenticationError('Invalid email or password');
+    throw new AuthenticationError("Invalid email or password");
   }
 
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
-    throw new AuthenticationError('Invalid email or password');
+    throw new AuthenticationError("Invalid email or password");
   }
 
   const token = await generateToken(user);
@@ -62,7 +66,7 @@ export async function googleSignIn({
   idToken: string;
 }): Promise<{ user: User; token: string }> {
   if (!config.GOOGLE_CLIENT_ID) {
-    throw new ValidationError('Google sign-in is not configured');
+    throw new ValidationError("Google sign-in is not configured");
   }
 
   const client = new OAuth2Client(config.GOOGLE_CLIENT_ID);
@@ -74,11 +78,11 @@ export async function googleSignIn({
     });
     payload = ticket.getPayload();
   } catch {
-    throw new AuthenticationError('Invalid Google ID token');
+    throw new AuthenticationError("Invalid Google ID token");
   }
 
   if (!payload || !payload.email) {
-    throw new AuthenticationError('Invalid Google ID token');
+    throw new AuthenticationError("Invalid Google ID token");
   }
 
   let user = await User.findOne({ where: { email: payload.email } });
@@ -90,8 +94,8 @@ export async function googleSignIn({
   } else {
     user = await User.create({
       email: payload.email,
-      firstName: payload.given_name ?? payload.email.split('@')[0],
-      lastName: payload.family_name ?? '',
+      firstName: payload.given_name ?? payload.email.split("@")[0],
+      lastName: payload.family_name ?? "",
       verifiedEmail: payload.email_verified ? payload.email : undefined,
       profileImageUrl: payload.picture,
     });

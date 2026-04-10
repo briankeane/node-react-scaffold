@@ -4,8 +4,8 @@ import {
   InferAttributes,
   InferCreationAttributes,
   Model,
-} from 'sequelize';
-import sequelize from '../../sequelize';
+} from "sequelize";
+import sequelize from "../../sequelize";
 
 class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
   declare id: CreationOptional<string>;
@@ -16,7 +16,7 @@ class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
   declare verifiedEmail: CreationOptional<string>;
   declare passwordHash: CreationOptional<string>;
   declare profileImageUrl: CreationOptional<string>;
-  declare role: CreationOptional<'admin' | 'user' | 'guest'>;
+  declare role: CreationOptional<"admin" | "user" | "guest">;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 
@@ -57,16 +57,16 @@ User.init(
     passwordHash: DataTypes.STRING,
     profileImageUrl: DataTypes.STRING,
     role: {
-      type: DataTypes.ENUM('admin', 'user', 'guest'),
+      type: DataTypes.ENUM("admin", "user", "guest"),
       allowNull: false,
-      defaultValue: 'user',
+      defaultValue: "user",
     },
     createdAt: DataTypes.DATE,
     updatedAt: DataTypes.DATE,
   },
   {
     sequelize,
-    modelName: 'user',
+    modelName: "user",
   },
 );
 
