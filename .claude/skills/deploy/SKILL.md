@@ -83,19 +83,22 @@ Walk through Cloudflare DNS + SSL setup. Only relevant if they have a custom dom
 
 ## Section 3: CircleCI
 
-Walk through CI/CD pipeline setup.
+Walk through CI/CD pipeline setup. The pipeline builds Docker images, pushes to GHCR, and deploys to Render via its API.
 
 1. **Account** — https://circleci.com/signup/ (recommend GitHub signup)
 2. **Add project** — Projects -> Set Up Project, select "Use existing config"
 3. **Docker Hub credentials** — They need a Docker Hub account (https://hub.docker.com/signup) and access token
    - Add DOCKERHUB_USERNAME and DOCKERHUB_PASSWORD to CircleCI project environment variables
-4. **Deploy hooks** — If they want CircleCI to trigger deploys (vs Render auto-deploy):
-   - Get deploy hook URLs from Render dashboard (Web Service -> Settings -> Deploy Hook)
-   - Add RENDER_DEPLOY_HOOK_SERVER (and optionally RENDER_DEPLOY_HOOK_PRODUCTION) to CircleCI env vars
-5. **Update config** — Offer to update `.circleci/config.yml` to replace any Heroku references with Render deploy hooks
-   - Read the current config first to see what needs changing
-   - The deploy step should `curl` the deploy hook URL
-   - Keep the existing test/lint jobs
+4. **GHCR context** — Create a `ghcr` context in CircleCI Organization Settings -> Contexts:
+   - `GHCR_USERNAME` — GitHub username or org name
+   - `GHCR_TOKEN` — GitHub Personal Access Token with `write:packages` scope (create at https://github.com/settings/tokens)
+5. **Render context** — Create a `render` context in CircleCI:
+   - `RENDER_API_KEY` — From Render Account Settings -> API Keys
+   - `RENDER_STAGING_SERVICE_ID` — Service ID for staging-server (from the service URL: `srv-xxxxx`)
+   - `RENDER_STAGING_WORKER_SERVICE_ID` — Service ID for staging-worker (optional)
+   - `RENDER_PRODUCTION_SERVICE_ID` — Service ID for production-server
+   - `RENDER_PRODUCTION_WORKER_SERVICE_ID` — Service ID for production-worker (optional)
+6. **Update render.yaml** — Replace `YOUR_ORG/YOUR_REPO` in `render.yaml` with the GHCR image path (e.g. `ghcr.io/myorg/myrepo`)
 
 ## Section 4: Google OAuth
 
