@@ -285,6 +285,23 @@ To create a release PR from `develop` to `main`:
 2. Choose version bump type (patch/minor/major) and enter a release title
 3. A PR is auto-created with the version bump and commit summary
 
+### Custom Domain Setup
+
+To point a custom domain at your Render services:
+
+1. **Add the domain in Render** — Go to your service's **Settings → Custom Domains** and add the domain (e.g. `api.example.com`). Render provisions a TLS certificate automatically.
+
+2. **Create a CNAME record** with your DNS provider pointing the subdomain to your Render service hostname:
+
+   | Subdomain       | Type  | Target                                  |
+   | --------------- | ----- | --------------------------------------- |
+   | `api-staging`   | CNAME | `myapp-staging-server.onrender.com`     |
+   | `api`           | CNAME | `myapp-production-server.onrender.com`  |
+
+3. **Wait for DNS propagation** and verify the domain is active in Render's Custom Domains panel.
+
+> **Cloudflare users:** CNAME records **must** be set to **DNS only** (grey cloud icon), not Proxied (orange cloud). Proxied mode causes **Cloudflare Error 1000** ("DNS points to prohibited IP") because Render's origin IPs are on Cloudflare's network. Render handles TLS automatically, so Cloudflare's proxy is not needed.
+
 ### Production Docker Image
 
 To build the production image locally for testing:
