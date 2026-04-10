@@ -35,6 +35,7 @@ jobs:
       - run: docker compose run client npm test
 
   promote-to-production:
+    if: ${{ secrets.RENDER_API_KEY != '' }}
     needs: [build-and-test, lint-server, lint-client, test-client]
     runs-on: ubuntu-latest
     permissions:
@@ -52,6 +53,7 @@ jobs:
           docker push ghcr.io/$GHCR_USERNAME/$REPO_NAME:production
 
   deploy-to-render:
+    if: ${{ secrets.RENDER_API_KEY != '' }}
     needs: promote-to-production
     runs-on: ubuntu-latest
     steps:

@@ -35,6 +35,7 @@ jobs:
       - run: docker compose run client npm test
 
   build-and-push-image:
+    if: ${{ secrets.RENDER_API_KEY != '' }}
     needs: [build-and-test, lint-server, lint-client, test-client]
     runs-on: ubuntu-latest
     permissions:
@@ -49,6 +50,7 @@ jobs:
         run: docker push ghcr.io/${{ secrets.GHCR_USERNAME }}/${{ github.event.repository.name }}:staging
 
   deploy-to-render:
+    if: ${{ secrets.RENDER_API_KEY != '' }}
     needs: build-and-push-image
     runs-on: ubuntu-latest
     steps:
