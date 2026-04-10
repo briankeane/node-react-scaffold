@@ -11,8 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: touch ./server/.env
-      - run: docker compose run server npx env-cmd -f .env-test npm run build
-      - run: docker compose run server npm test
+      - run: docker compose run server sh -c "npx env-cmd -f .env-test npm run build && npm test"
 
   lint-server:
     runs-on: ubuntu-latest
