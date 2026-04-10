@@ -21,7 +21,7 @@ Never implement multiple functions in parallel. Complete the full cycle for one 
 
 ## Reference Implementation
 
-Study `server/src/lib/healtCheck/healthCheck.lib.ts` for the existing pattern.
+Study `server/src/lib/healthCheck/healthCheck.lib.ts` for the existing pattern.
 
 ## File Organization
 

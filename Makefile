@@ -1,4 +1,4 @@
-COMPOSE := docker-compose
+COMPOSE := docker compose
 
 find-open-ports:
 	./scripts/set-ports.sh
