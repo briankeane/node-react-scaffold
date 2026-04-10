@@ -34,9 +34,25 @@ jobs:
       - run: touch ./server/.env
       - run: docker compose run client npm test
 
+  check-deploy:
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - id: check
+        run: |
+          if [ -n "$RENDER_API_KEY" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::RENDER_API_KEY not configured, skipping deploy"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+
   promote-to-production:
-    if: ${{ secrets.RENDER_API_KEY != '' }}
-    needs: [build-and-test, lint-server, lint-client, test-client]
+    if: needs.check-deploy.outputs.enabled == 'true'
+    needs: [build-and-test, lint-server, lint-client, test-client, check-deploy]
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -53,8 +69,8 @@ jobs:
           docker push ghcr.io/$GHCR_USERNAME/$REPO_NAME:production
 
   deploy-to-render:
-    if: ${{ secrets.RENDER_API_KEY != '' }}
-    needs: promote-to-production
+    if: needs.check-deploy.outputs.enabled == 'true'
+    needs: [promote-to-production, check-deploy]
     runs-on: ubuntu-latest
     steps:
       - name: Deploy production services on Render
