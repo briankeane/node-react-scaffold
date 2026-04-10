@@ -1,4 +1,4 @@
-import { useAuth } from "../../Contexts/useAuth";
+import { useAuth } from '../../Contexts/useAuth';
 
 export default function DashboardPage() {
   const { user } = useAuth();

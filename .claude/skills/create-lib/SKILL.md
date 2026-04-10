@@ -21,7 +21,10 @@ Never implement multiple functions in parallel. Complete the full cycle for one 
 
 ## Reference Implementation
 
-Study `server/src/lib/healthCheck/healthCheck.lib.ts` for the existing pattern.
+Study these for the existing patterns:
+
+- `server/src/lib/auth/auth.lib.ts` — Full example with user creation, password hashing, token generation
+- `server/src/lib/healthCheck/healthCheck.lib.ts` — Minimal example
 
 ## File Organization
 
@@ -47,23 +50,23 @@ server/src/lib/[module]/
 ### Test Pattern
 
 ```typescript
-import { assert } from "chai";
-import db from "../../db";
-import { createUser } from "../../test/testDataGenerator";
-import * as moduleLib from "./[module].lib";
+import { assert } from 'chai';
+import db from '../../db';
+import { createUser } from '../../test/testDataGenerator';
+import * as moduleLib from './[module].lib';
 
-describe("[module] lib", function () {
-  describe("functionName", function () {
-    it("does the expected thing", async function () {
+describe('[module] lib', function () {
+  describe('functionName', function () {
+    it('does the expected thing', async function () {
       const user = await createUser(db);
       const result = await moduleLib.functionName(user.id);
       assert.exists(result);
     });
 
-    it("throws NotFoundError for non-existent resource", async function () {
+    it('throws NotFoundError for non-existent resource', async function () {
       try {
-        await moduleLib.functionName("non-existent-id");
-        assert.fail("should have thrown");
+        await moduleLib.functionName('non-existent-id');
+        assert.fail('should have thrown');
       } catch (err) {
         assert.instanceOf(err, NotFoundError);
       }
@@ -77,17 +80,17 @@ describe("[module] lib", function () {
 Always use `server/src/test/testDataGenerator.ts`:
 
 ```typescript
-import { createUser } from "../../test/testDataGenerator";
+import { createUser } from '../../test/testDataGenerator';
 ```
 
 **DO NOT manually create users with hardcoded emails:**
 
 ```typescript
 // BAD - can cause duplicate email conflicts between tests
-const user = await db.models.User.create({ email: "test@example.com" });
+const user = await db.models.User.create({ email: 'test@example.com' });
 
 // GOOD - let testDataGenerator handle unique emails
-const user = await createUser(db, { role: "admin" });
+const user = await createUser(db, { role: 'admin' });
 ```
 
 ## Test Commands

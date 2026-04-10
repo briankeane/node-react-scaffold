@@ -1,20 +1,16 @@
-import { NextFunction, Request, Response } from "express";
-import { expressjwt } from "express-jwt";
-import config from "../config/config";
-import {
-  AuthenticationError,
-  ErrorMessages,
-  PermissionError,
-} from "../utils/errors";
+import { NextFunction, Request, Response } from 'express';
+import { expressjwt } from 'express-jwt';
+import config from '../config/config';
+import { AuthenticationError, ErrorMessages, PermissionError } from '../utils/errors';
 
 if (!config.JWT_SECRET) {
-  throw new Error("JWT_SECRET is required");
+  throw new Error('JWT_SECRET is required');
 }
 
 const jwt = expressjwt({
   secret: config.JWT_SECRET,
-  algorithms: ["HS256"],
-  requestProperty: "auth",
+  algorithms: ['HS256'],
+  requestProperty: 'auth',
 });
 
 export interface AuthenticatedRequest extends Request {
@@ -25,7 +21,7 @@ export interface AuthenticatedRequest extends Request {
     displayName?: string;
     email: string;
     profileImageUrl?: string;
-    role: "admin" | "user" | "guest";
+    role: 'admin' | 'user' | 'guest';
     [key: string]: string | number | undefined;
   };
 }
@@ -38,15 +34,10 @@ export const ROLE_HIERARCHY = {
 
 type UserRole = keyof typeof ROLE_HIERARCHY;
 
-export function authenticate(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
-  const authHeader = (req.headers.authorization ||
-    req.headers.Authorization) as string;
+export function authenticate(req: Request, res: Response, next: NextFunction): void {
+  const authHeader = (req.headers.authorization || req.headers.Authorization) as string;
 
-  const basicTokens = config.BASIC_AUTH_TOKENS?.split(" ");
+  const basicTokens = config.BASIC_AUTH_TOKENS?.split(' ');
   if (basicTokens && authHeader) {
     for (const token of basicTokens) {
       if (authHeader === `Basic ${token}`) {
@@ -58,11 +49,7 @@ export function authenticate(
   authenticateAccessToken(req, res, next);
 }
 
-export function authenticateAccessToken(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
+export function authenticateAccessToken(req: Request, res: Response, next: NextFunction) {
   jwt(req, res, (err) => {
     if (err) {
       return next(new AuthenticationError(ErrorMessages.ACCESS_TOKEN_REQUIRED));
@@ -70,11 +57,11 @@ export function authenticateAccessToken(
 
     const authReq = req as AuthenticatedRequest;
     if (!authReq.auth) {
-      return next(new AuthenticationError("No auth data in token"));
+      return next(new AuthenticationError('No auth data in token'));
     }
 
     Object.keys(req.params).forEach((paramName) => {
-      if (req.params[paramName] === "me") {
+      if (req.params[paramName] === 'me') {
         req.params[paramName] = authReq.auth.id;
       }
     });
@@ -90,7 +77,7 @@ export function requireRoleOfAtLeast(minimumRole: UserRole) {
       const userRole = authReq.auth?.role as UserRole;
 
       if (!userRole || !(userRole in ROLE_HIERARCHY)) {
-        next(new PermissionError("Invalid user role"));
+        next(new PermissionError('Invalid user role'));
         return;
       }
 
@@ -109,22 +96,14 @@ export function requireRoleOfAtLeast(minimumRole: UserRole) {
   };
 }
 
-export function isOperatingOnSelf(
-  paramName: string,
-  source: "params" | "body" = "params",
-) {
+export function isOperatingOnSelf(paramName: string, source: 'params' | 'body' = 'params') {
   return (req: Request, res: Response, next: NextFunction) => {
     const authReq = req as AuthenticatedRequest;
-    const targetUserId =
-      source === "params" ? req.params[paramName] : req.body[paramName];
+    const targetUserId = source === 'params' ? req.params[paramName] : req.body[paramName];
     const authenticatedUserId = authReq.auth?.id;
 
     if (targetUserId !== authenticatedUserId) {
-      next(
-        new PermissionError(
-          "You can only perform this action on your own account",
-        ),
-      );
+      next(new PermissionError('You can only perform this action on your own account'));
       return;
     }
 

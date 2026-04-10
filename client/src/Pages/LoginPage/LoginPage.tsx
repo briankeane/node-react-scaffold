@@ -1,17 +1,17 @@
-import { FormEvent, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "../../Contexts/useAuth";
+import { FormEvent, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../../Contexts/useAuth';
 
 export default function LoginPage() {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const redirectTo = searchParams.get("redirectTo") || "/dashboard";
+  const redirectTo = searchParams.get('redirectTo') || '/dashboard';
 
   if (isAuthenticated) {
     navigate(decodeURIComponent(redirectTo), { replace: true });
@@ -20,18 +20,17 @@ export default function LoginPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError("");
+    setError('');
     setSubmitting(true);
     try {
       await login({ email, password });
       navigate(decodeURIComponent(redirectTo), { replace: true });
     } catch (err: unknown) {
       const message =
-        err && typeof err === "object" && "response" in err
-          ? (err as { response: { data: { error: string } } }).response?.data
-              ?.error
-          : "Login failed";
-      setError(message || "Login failed");
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response: { data: { error: string } } }).response?.data?.error
+          : 'Login failed';
+      setError(message || 'Login failed');
     } finally {
       setSubmitting(false);
     }
@@ -59,7 +58,7 @@ export default function LoginPage() {
           required
         />
         <button type="submit" disabled={submitting}>
-          {submitting ? "Logging in..." : "Log In"}
+          {submitting ? 'Logging in...' : 'Log In'}
         </button>
       </form>
       <p>

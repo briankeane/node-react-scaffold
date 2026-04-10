@@ -1,5 +1,5 @@
-import { createContext } from "react";
-import type { LoginParams, SignupParams } from "../Services/authService";
+import { createContext } from 'react';
+import type { LoginParams, SignupParams } from '../Services/authService';
 
 export interface AuthUser {
   id: string;

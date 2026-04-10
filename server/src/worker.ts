@@ -1,5 +1,5 @@
-import logger from "./logger";
-import { startWorker } from "./scripts/startWorker";
+import logger from './logger';
+import { startWorker } from './scripts/startWorker';
 
 startWorker().catch((err) => {
   logger.error(err);

@@ -2,7 +2,7 @@
 name: deploy
 description: Interactive deployment setup guide for Render, Cloudflare, CircleCI, and Google OAuth
 disable-model-invocation: true
-argument-hint: "[all|render|cloudflare|circleci|google-oauth|env|status]"
+argument-hint: '[all|render|cloudflare|circleci|google-oauth|env|status]'
 ---
 
 # Deployment Setup Guide
@@ -12,6 +12,7 @@ You are an interactive deployment assistant. Walk the user through deploying thi
 ## Current Project State
 
 Before starting, read these files to understand what's already configured:
+
 - `server/.env` — current environment variables
 - `server/.env-example` — available env vars
 - `.env` — root env (PORT_OFFSET, ports)

@@ -1,11 +1,7 @@
-import { NextFunction, Request, Response } from "express";
-import { googleSignIn, login, signup } from "../../lib/auth";
+import { NextFunction, Request, Response } from 'express';
+import { googleSignIn, login, signup } from '../../lib/auth';
 
-export async function handleSignup(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
+export async function handleSignup(req: Request, res: Response, next: NextFunction) {
   try {
     const { email, password, firstName, lastName } = req.body;
     const { user, token } = await signup({
@@ -20,11 +16,7 @@ export async function handleSignup(
   }
 }
 
-export async function handleLogin(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
+export async function handleLogin(req: Request, res: Response, next: NextFunction) {
   try {
     const { email, password } = req.body;
     const { user, token } = await login({ email, password });
@@ -34,11 +26,7 @@ export async function handleLogin(
   }
 }
 
-export async function handleGoogleSignIn(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
+export async function handleGoogleSignIn(req: Request, res: Response, next: NextFunction) {
   try {
     const { idToken } = req.body;
     const { user, token } = await googleSignIn({ idToken });

@@ -1,7 +1,7 @@
-import { render, RenderOptions } from "@testing-library/react";
-import { ReactElement } from "react";
-import { MemoryRouter } from "react-router-dom";
-import { AuthProvider } from "../Contexts/AuthProvider";
+import { render, RenderOptions } from '@testing-library/react';
+import { ReactElement } from 'react';
+import { MemoryRouter } from 'react-router-dom';
+import { AuthProvider } from '../Contexts/AuthProvider';
 
 export class PromiseResolver<T = unknown> {
   reject!: (value: T) => void;
@@ -18,10 +18,7 @@ export class PromiseResolver<T = unknown> {
 
 export function renderWithProviders(
   ui: ReactElement,
-  {
-    initialEntries = ["/"],
-    ...options
-  }: RenderOptions & { initialEntries?: string[] } = {},
+  { initialEntries = ['/'], ...options }: RenderOptions & { initialEntries?: string[] } = {},
 ) {
   function Wrapper({ children }: { children: React.ReactNode }) {
     return (

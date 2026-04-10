@@ -1,14 +1,14 @@
-import { assert } from "chai";
-import nock from "nock";
-import { Model, ModelStatic } from "sequelize";
-import config from "../config/config";
-import sequelize from "../db/sequelize";
-import logger from "../logger";
+import { assert } from 'chai';
+import nock from 'nock';
+import { Model, ModelStatic } from 'sequelize';
+import config from '../config/config';
+import sequelize from '../db/sequelize';
+import logger from '../logger';
 
 export async function clearDatabase() {
-  if (config.NODE_ENV !== "test") return;
+  if (config.NODE_ENV !== 'test') return;
 
-  await sequelize.query("SET session_replication_role = replica;");
+  await sequelize.query('SET session_replication_role = replica;');
 
   const models = sequelize.models;
   for (const modelName of Object.keys(models)) {
@@ -19,7 +19,7 @@ export async function clearDatabase() {
     });
   }
 
-  await sequelize.query("SET session_replication_role = DEFAULT;");
+  await sequelize.query('SET session_replication_role = DEFAULT;');
 }
 
 export async function waitForInstanceToExist<T extends Model>(
@@ -33,7 +33,7 @@ export async function waitForInstanceToExist<T extends Model>(
     return results[0];
   }
   if (elapsed >= timeout) {
-    throw assert.fail("model failed to create within timeout");
+    throw assert.fail('model failed to create within timeout');
   }
   return waitForInstanceToExist(model, query, timeout, elapsed + 10);
 }
@@ -66,10 +66,8 @@ export async function assertInstancePropertyEventuallyEquals(
 
 export function checkAndClearNocks() {
   if (!nock.isDone()) {
-    logger.always.log(
-      "remaining Nocks: " + JSON.stringify(nock.pendingMocks(), null, 2),
-    );
-    throw assert.fail("Not all nock interceptors were used!");
+    logger.always.log('remaining Nocks: ' + JSON.stringify(nock.pendingMocks(), null, 2));
+    throw assert.fail('Not all nock interceptors were used!');
   }
   nock.cleanAll();
 }
@@ -79,8 +77,8 @@ export function extractIds(arr: Array<{ id: unknown }>) {
 }
 
 export function parseJwt(token: string): unknown {
-  const base64Url = token.split(".")[1];
-  const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-  const buff = Buffer.from(base64, "base64");
-  return JSON.parse(buff.toString("ascii"));
+  const base64Url = token.split('.')[1];
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  const buff = Buffer.from(base64, 'base64');
+  return JSON.parse(buff.toString('ascii'));
 }

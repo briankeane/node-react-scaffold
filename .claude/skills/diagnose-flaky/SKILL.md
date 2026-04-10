@@ -22,7 +22,7 @@ Add conditional logging that only prints on failure:
 
 ```typescript
 if (actualValue !== expectedValue) {
-  console.log("DEBUG flaky test - failure state:", {
+  console.log('DEBUG flaky test - failure state:', {
     actualValue,
     expectedValue,
     relevantState: someVariable,
@@ -47,26 +47,31 @@ The script stops on first failure and shows the debug output.
 ### 3. Common Causes of Flaky Tests
 
 #### Timezone Issues
+
 Tests that check dates/times may fail when local time crosses a day boundary in UTC.
 
 **Fix:** Use timezone-aware assertions or freeze to a specific time that avoids boundary issues.
 
 #### Random Selection
+
 Tests involving random choices may not always hit the expected branch.
 
 **Fix:** Seed the random number generator or assert over a range of valid outcomes.
 
 #### Database State
+
 Tests may pollute shared database state or run in unexpected order.
 
 **Fix:** Ensure proper cleanup. The `clearDatabase()` function in `test.helpers.ts` runs in `afterEach` via `mochaSetup.test.ts`. If a test needs specific isolation, add explicit setup/teardown.
 
 #### Race Conditions
+
 Async operations completing in different orders.
 
 **Fix:** Use proper `await` and ensure deterministic ordering.
 
 #### nock Leaks
+
 HTTP mocks from one test leaking into the next.
 
 **Fix:** Call `nock.cleanAll()` in `afterEach` for tests that set up nocks. The global `mochaSetup.test.ts` already handles this, but test-specific nocks may need explicit cleanup.

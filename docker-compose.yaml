@@ -9,7 +9,7 @@ services:
     user: postgres
     build: ./docker/postgres
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - '${POSTGRES_PORT:-5432}:5432'
     volumes:
       - ./docker/postgres:/docker-entrypoint-initdb.d
     environment:
@@ -17,19 +17,19 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: pass
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready","-u", "postgres", "-d", "serverdev"]
+      test: ['CMD-SHELL', 'pg_isready', '-u', 'postgres', '-d', 'serverdev']
       interval: 1s
       timeout: 60s
       retries: 5
-      start_period: 80s  
+      start_period: 80s
 
   server:
     build:
       context: ./server
       dockerfile: Dockerfile
     ports:
-      - "127.0.0.1:${SERVER_PORT:-10020}:10020"
-      - "127.0.0.1:${SERVER_DEBUG_PORT:-9229}:9229"
+      - '127.0.0.1:${SERVER_PORT:-10020}:10020'
+      - '127.0.0.1:${SERVER_DEBUG_PORT:-9229}:9229'
     expose:
       - 9229
     volumes:
@@ -40,15 +40,14 @@ services:
       - migrate
     env_file:
       - ./server/.env
-    command:
-      ["npm", "run", "dev"]
+    command: ['npm', 'run', 'dev']
 
   worker:
     build:
       context: ./server
       dockerfile: Dockerfile
     ports:
-      - "127.0.0.1:${WORKER_PORT:-10030}:10030"
+      - '127.0.0.1:${WORKER_PORT:-10030}:10030'
     expose:
       - 9229
     volumes:
@@ -61,8 +60,7 @@ services:
       - migrate
     env_file:
       - ./server/.env
-    command:
-      ["npm", "run", "worker"]
+    command: ['npm', 'run', 'worker']
 
   migrate:
     build:
@@ -74,13 +72,13 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-        
+
     env_file:
       - ./server/.env
-    command: ["npm", "run", "migrate:all"]
+    command: ['npm', 'run', 'migrate:all']
 
   client:
-    build: 
+    build:
       context: ./client
       dockerfile: Dockerfile
     command: npm run dev
@@ -91,5 +89,5 @@ services:
       - path: ./client/.env
         required: false
     ports:
-      - "${CLIENT_PORT:-3000}:3000"
-      - "${CLIENT_HMR_PORT:-3010}:3010"
+      - '${CLIENT_PORT:-3000}:3000'
+      - '${CLIENT_HMR_PORT:-3010}:3010'
