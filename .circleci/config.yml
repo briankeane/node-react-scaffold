@@ -63,15 +63,15 @@ jobs:
 
     steps:
       - checkout
-      - run: touch ./server/.env # env files have to exist for docker-compose to work
+      - run: touch ./server/.env # env files have to exist for docker compose to work
       - run:
           name: Authenticate with Docker Hub
           command: |
             : "${DOCKERHUB_USERNAME:?Set DOCKERHUB_USERNAME in CircleCI project settings}"
             : "${DOCKERHUB_PASSWORD:?Set DOCKERHUB_PASSWORD in CircleCI project settings}"
             echo "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
-      - run: docker-compose run server npx env-cmd -f .env-test npm run build # build includes tsx and migrate
-      - run: docker-compose run server npm test
+      - run: docker compose run server npx env-cmd -f .env-test npm run build # build includes tsx and migrate
+      - run: docker compose run server npm test
 
   heroku_build:
     machine: true
@@ -79,14 +79,14 @@ jobs:
 
     steps:
       - checkout
-      - run: touch ./server/.env # env files have to exist for docker-compose to work
+      - run: touch ./server/.env # env files have to exist for docker compose to work
       - run:
           name: Authenticate with Docker Hub
           command: |
             : "${DOCKERHUB_USERNAME:?Set DOCKERHUB_USERNAME in CircleCI project settings}"
             : "${DOCKERHUB_PASSWORD:?Set DOCKERHUB_PASSWORD in CircleCI project settings}"
             echo "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
-      - run: docker-compose run server npm run build-ts
+      - run: docker compose run server npm run build-ts
       - run:
           name: Install required tools
           command: sudo apt-get update && sudo apt-get install -y jq
@@ -134,7 +134,7 @@ jobs:
             : "${DOCKERHUB_USERNAME:?Set DOCKERHUB_USERNAME in CircleCI project settings}"
             : "${DOCKERHUB_PASSWORD:?Set DOCKERHUB_PASSWORD in CircleCI project settings}"
             echo "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
-      - run: docker-compose run server npm run lint
+      - run: docker compose run server npm run lint
 
   lint-client:
     machine: true
@@ -142,14 +142,14 @@ jobs:
 
     steps:
       - checkout
-      - run: touch ./server/.env # env files have to exist for docker-compose to work
+      - run: touch ./server/.env # env files have to exist for docker compose to work
       - run:
           name: Authenticate with Docker Hub
           command: |
             : "${DOCKERHUB_USERNAME:?Set DOCKERHUB_USERNAME in CircleCI project settings}"
             : "${DOCKERHUB_PASSWORD:?Set DOCKERHUB_PASSWORD in CircleCI project settings}"
             echo "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
-      - run: docker-compose run client npm run lint
+      - run: docker compose run client npm run lint
   
   test-client:
     machine: true
@@ -157,14 +157,14 @@ jobs:
 
     steps:
       - checkout
-      - run: touch ./server/.env # env files have to exist for docker-compose to work
+      - run: touch ./server/.env # env files have to exist for docker compose to work
       - run:
           name: Authenticate with Docker Hub
           command: |
             : "${DOCKERHUB_USERNAME:?Set DOCKERHUB_USERNAME in CircleCI project settings}"
             : "${DOCKERHUB_PASSWORD:?Set DOCKERHUB_PASSWORD in CircleCI project settings}"
             echo "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
-      - run: docker-compose run client npm test
+      - run: docker compose run client npm test
 
   deploy_to_heroku_staging:
     docker:

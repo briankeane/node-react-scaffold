@@ -20,8 +20,10 @@ const jwt = expressjwt({
 export interface AuthenticatedRequest extends Request {
   auth: {
     id: string;
-    email: string;
+    firstName: string;
+    lastName?: string;
     displayName?: string;
+    email: string;
     profileImageUrl?: string;
     role: "admin" | "user" | "guest";
     [key: string]: string | number | undefined;

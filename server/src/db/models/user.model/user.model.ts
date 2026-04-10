@@ -9,34 +9,22 @@ import sequelize from "../../sequelize";
 
 class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
   declare id: CreationOptional<string>;
-  declare displayName: string;
+  declare firstName: string;
+  declare lastName: CreationOptional<string>;
+  declare displayName: CreationOptional<string>;
   declare email: string;
-  declare profileImageUrl?: CreationOptional<string>;
+  declare verifiedEmail: CreationOptional<string>;
+  declare passwordHash: CreationOptional<string>;
+  declare profileImageUrl: CreationOptional<string>;
   declare role: "admin" | "user" | "guest";
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 
-  // Example of Association properties
-  // declare stations?: Station[];
-
-  // Example of BelongsToMany mixins for the relationship with Station
-  // public getStations!: BelongsToManyGetAssociationsMixin<Station>;
-  // public addStation!: BelongsToManyAddAssociationMixin<Station, string>;
-  // public setStations!: BelongsToManySetAssociationsMixin<Station, string>;
-  // public removeStation!: BelongsToManyRemoveAssociationMixin<Station, string>;
-
-  // Example of HasMany mixin for the relationship with ListeningSession
-  // public getListeningSessions!: HasManyGetAssociationsMixin<ListeningSession>;
-
-  // Example of Static associations property (optional but helps TypeScript understand the relationships)
-  // public static associations: {
-  //   stations: Association<User, Station>;
-  //   listeningSessions: Association<User, ListeningSession>;
-  // };
-
   jwtRepr() {
     return {
       id: this.id.toString(),
+      firstName: this.firstName,
+      lastName: this.lastName,
       displayName: this.displayName,
       email: this.email,
       profileImageUrl: this.profileImageUrl,
@@ -54,13 +42,20 @@ User.init(
       allowNull: false,
       autoIncrement: false,
     },
+    firstName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    lastName: DataTypes.STRING,
     displayName: DataTypes.STRING,
-    profileImageUrl: DataTypes.STRING,
     email: {
       type: DataTypes.STRING,
       unique: true,
       allowNull: false,
     },
+    verifiedEmail: DataTypes.STRING,
+    passwordHash: DataTypes.STRING,
+    profileImageUrl: DataTypes.STRING,
     role: {
       type: DataTypes.ENUM("admin", "user", "guest"),
       allowNull: false,
