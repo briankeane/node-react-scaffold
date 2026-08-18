@@ -30,7 +30,7 @@ A production-ready full-stack TypeScript starter with authentication, protected 
 - Docker Compose for local development
 - Automatic port management (multiple instances supported)
 - Render for staging and production hosting
-- CircleCI CI/CD pipeline (build, test, deploy to Render)
+- GitHub Actions CI/CD pipeline (build, test, deploy to Render)
 - GitHub Actions release PR automation
 - Claude Code skills for AI-assisted development
 
@@ -119,7 +119,7 @@ This project includes [Claude Code](https://claude.ai/claude-code) skills for AI
 | `/create-lib`      | Create library functions with TDD, one function at a time                 |
 | `/create-feature`  | Create a client feature (service + context + page + route)                |
 | `/diagnose-flaky`  | Step-by-step flaky test diagnosis                                         |
-| `/deploy`          | Interactive deployment setup (Render, Cloudflare, CircleCI, Google OAuth) |
+| `/deploy`          | Interactive deployment setup (Render, Cloudflare, GitHub Actions, Google OAuth) |
 
 Skills live in `.claude/skills/` and teach Claude the project's conventions so it generates code that matches existing patterns.
 
@@ -174,8 +174,8 @@ Skills live in `.claude/skills/` and teach Claude the project's conventions so i
 ```
 ├── .claude/
 │   └── skills/              # Claude Code skills
-├── .circleci/
-│   └── config.yml           # CI/CD pipeline
+├── .github/
+│   └── workflows/           # CI/CD pipelines (GitHub Actions)
 ├── client/
 │   └── src/
 │       ├── Components/      # Reusable React components
@@ -215,67 +215,98 @@ Each endpoint module has a co-located `.api.docs.yaml` file. See `server/src/api
 
 ### Overview
 
-The project uses [Render](https://render.com) for staging and production hosting. Docker images are built by CircleCI, pushed to GitHub Container Registry (GHCR), and deployed to Render via its API.
+Hosting is on [Render](https://render.com) with two environments: **staging** (deploys
+from `develop`) and **production** (deploys from `main`). Each environment builds its own
+Docker image — production does **not** depend on staging existing.
 
-**Pipeline flow:**
+The deploy is driven by GitHub Actions (`.github/workflows/deploy-staging.yml` and
+`deploy-production.yml`), not by Render building from git — the Render services are
+`runtime: image` and only *pull* the tag.
 
-1. Push to `develop` → CircleCI builds & tests → Docker image pushed to GHCR as `:staging` → deployed to Render staging
-2. Push to `main` → CircleCI builds & tests → `:staging` image promoted to `:production` → deployed to Render production
+**Pipeline flow (per branch):**
 
-### Initial Render Setup
+1. Lint + test (server and client)
+2. Build `server/Dockerfile.production`, push `ghcr.io/<owner>/<repo>` with a moving
+   `:staging` / `:production` tag **and** an immutable `:<git-sha>` tag (the image path is
+   lowercased automatically for GHCR)
+3. Call the Render API to deploy the environment's server **pinned to the `:<git-sha>`
+   image** (deterministic — can't race another push), poll until it's `live`
+4. Same for the environment's worker (also polled to `live`, skipped if its worker
+   service-ID secret is unset)
 
-1. **Create a Render account** at https://render.com
+If `RENDER_API_KEY` is not configured as a GitHub secret, the deploy jobs skip themselves
+automatically (lint/test **and** the image build still run), so the pipeline is safe before
+Render exists.
 
-2. **Update `render.yaml`** — Replace `YOUR_ORG/YOUR_REPO` with your GitHub org and repo name (e.g. `ghcr.io/myorg/myapp:staging`)
+### Initial Render Setup (order matters)
 
-3. **Create a PostgreSQL database** in Render for each environment (staging and production)
+The Blueprint references the `:staging` / `:production` image tags, and Render verifies
+image access when it creates image-backed services — so each image and its pull access
+must exist **before** the first Blueprint sync. Do this once per environment (staging from
+`develop`, production from `main`).
 
-4. **Create environment variable groups** in the Render dashboard:
-   - `staging` — with `DATABASE_URL`, `JWT_SECRET`, and any other env vars from `server/.env-example`
+1. **Update `render.yaml`** — Replace `YOUR_ORG/YOUR_REPO` with your GitHub owner and repo
+   name, **lowercased** (e.g. `ghcr.io/myorg/myapp:production`). The CI workflows lowercase
+   the path they build/push, so keep the Blueprint consistent with them.
+
+2. **Push the branch once** so the workflow builds and pushes the first image
+   (`develop` → `:staging`, `main` → `:production`). The build authenticates to GHCR with
+   the built-in `GITHUB_TOKEN` (no personal PAT required) and always runs on push; the
+   Render deploy step skips itself until `RENDER_API_KEY` exists.
+
+3. **Give Render pull access to the image** — either:
+   - make the GHCR package **public** (GitHub → your profile → Packages → your repo →
+     Package settings → Change visibility → Public), **or**
+   - create a Render **registry credential** for GHCR (Render → Account Settings →
+     Registry Credentials) and attach it to the image services when creating them.
+
+4. **Create the env var groups** in the Render dashboard for **secrets only**:
+   - `staging` — `JWT_SECRET` (and any other secrets your app needs)
    - `production` — same keys, production values
 
-5. **Create the services** using the Render Blueprint:
-   - Go to Render Dashboard → **Blueprints** → **New Blueprint Instance**
-   - Connect your GitHub repo and select the `render.yaml` file
-   - Render will create the staging-server, staging-worker, production-server, and production-worker services
+   `DATABASE_URL`, `NODE_ENV`, and `PORT` are **not** set here — the Blueprint wires
+   `DATABASE_URL` from the managed database and sets `NODE_ENV`/`PORT` inline.
 
-6. **Note the service IDs** — You'll need these for CircleCI. Find them in each service's Settings page URL (the `srv-xxxxx` value).
+5. **Create the Blueprint** — Render Dashboard → **Blueprints** → **New Blueprint
+   Instance** → connect this repo and select `render.yaml`. Render provisions the
+   `staging-db` / `production-db` Postgres databases and the `staging-server`,
+   `staging-worker`, `production-server`, and `production-worker` services. (If an image is
+   private, select the registry credential when prompted.)
 
-### CircleCI Setup
+6. **Note the service IDs** (the `srv-xxxxx` value in each service's Settings URL).
 
-1. Sign up at https://circleci.com/ and connect your GitHub repository
+7. **Add the Render deploy secrets** to GitHub (Settings → Secrets → Actions):
+   - `RENDER_API_KEY` — from Render Account Settings → API Keys
+   - `RENDER_STAGING_SERVICE_ID` — the `staging-server` service ID
+   - `RENDER_STAGING_WORKER_SERVICE_ID` — the `staging-worker` service ID (optional)
+   - `RENDER_PRODUCTION_SERVICE_ID` — the `production-server` service ID
+   - `RENDER_PRODUCTION_WORKER_SERVICE_ID` — the `production-worker` service ID (optional)
 
-2. Add these environment variables in CircleCI project settings:
-   - `DOCKERHUB_USERNAME` — Docker Hub username
-   - `DOCKERHUB_PASSWORD` — Docker Hub access token
-
-3. Create a **`ghcr`** context in CircleCI with:
-   - `GHCR_USERNAME` — Your GitHub username or org name
-   - `GHCR_TOKEN` — A GitHub Personal Access Token with `write:packages` scope
-
-4. Create a **`render`** context in CircleCI with:
-   - `RENDER_API_KEY` — Render API key (from Account Settings → API Keys)
-   - `RENDER_STAGING_SERVICE_ID` — Service ID for `staging-server`
-   - `RENDER_STAGING_WORKER_SERVICE_ID` — Service ID for `staging-worker` (optional)
-   - `RENDER_PRODUCTION_SERVICE_ID` — Service ID for `production-server`
-   - `RENDER_PRODUCTION_WORKER_SERVICE_ID` — Service ID for `production-worker` (optional)
+> **No GHCR PAT needed.** The old `GHCR_TOKEN` / `GHCR_USERNAME` secrets are no longer
+> required — the workflows push to GHCR with the built-in `GITHUB_TOKEN`. Remove them if
+> they were set for an earlier version of this scaffold.
 
 ### Deploying to Staging
 
-Merge a PR into `develop`. CircleCI will automatically:
-1. Build and test the server
-2. Build the production Docker image
-3. Push it to GHCR tagged as `:staging`
-4. Trigger a deploy on Render staging
-5. Wait for the deploy to go live
+Merge a PR into `develop` (or push to `develop`). The workflow builds and pushes the
+`:staging` + `:<git-sha>` images, then triggers the Render deploy pinned to the SHA and
+polls to `live`.
 
 ### Deploying to Production
 
-Merge `develop` into `main`. CircleCI will automatically:
-1. Build and test the server
-2. Pull the `:staging` image, re-tag it as `:production`, and push to GHCR
-3. Trigger a deploy on Render production
-4. Wait for the deploy to go live
+Merge `develop` into `main` (or push to `main`). The workflow builds and pushes the
+`:production` + `:<git-sha>` images, then triggers the Render deploy pinned to the SHA and
+polls to `live`. On each deploy Render runs the `preDeployCommand`
+(`predeployMigrate.js` on the web service — validate env, then run migrations) before
+cutting traffic to the new container, and the `/v1/healthCheck` health check gates the
+rollout. A failed migration fails the deploy closed, so traffic never moves to an
+un-migrated schema.
+
+### Rollback
+
+Each deploy also pushed a `:<git-sha>` image tag. To roll back, redeploy a previous image
+from the Render dashboard (Deploys → pick an earlier deploy → Redeploy), or re-point the
+service at an older `:<git-sha>` tag.
 
 ### Release Workflow
 
@@ -360,7 +391,13 @@ Then add a CNAME record with your DNS provider pointing to `<site-name>.netlify.
 
 ### How It Works
 
-The `deploy-staging.yml` and `deploy-production.yml` GitHub Actions workflows include a `deploy-client-to-netlify` job that builds the client and deploys via `npx netlify deploy --dir=dist --prod`. Staging deploys on push to `develop`, production deploys on push to `main`.
+The client is deployed by Netlify, not by the GitHub Actions workflows (those build and
+deploy only the server image to Render). The simplest path is Netlify's Git integration:
+connect each site to this repo and Netlify reads `netlify.toml`, builds `client/` on every
+push, and publishes `client/dist` — point the staging site at `develop` and the production
+site at `main`. Alternatively, deploy from CI or locally with the Netlify CLI using the
+`NETLIFY_AUTH_TOKEN` and the target `NETLIFY_*_SITE_ID` from the secrets above:
+`npx netlify deploy --dir=client/dist --prod`.
 
 ## Contributing
 
