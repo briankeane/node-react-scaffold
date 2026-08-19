@@ -40,6 +40,7 @@ function ctx(mode: Mode, io: IO): CloudContext {
     envs: ['production'],
     jobs: false,
     repo: { owner: 'acme', name: 'app', image: 'ghcr.io/acme/app' },
+    tokens: { renderApiKey: 'rk', netlifyAuthToken: 'nt' },
     // clients unused by these synthetic steps
     render: {} as never,
     github: {} as never,

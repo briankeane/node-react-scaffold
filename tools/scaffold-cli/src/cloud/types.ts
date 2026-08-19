@@ -52,6 +52,9 @@ export interface CloudContext {
   envs: Env[]; // ['production', ...('staging' if enabled)]
   jobs: boolean;
   repo: { owner: string; name: string; image: string }; // image = lowercased ghcr.io/<owner>/<repo>
+  // Credential VALUES resolved at the entrypoint (from env / prompt) so steps stay
+  // testable. These become GitHub secrets; RENDER_API_KEY also auths the RenderClient.
+  tokens: { renderApiKey?: string; netlifyAuthToken?: string };
   render: RenderClient;
   github: GitHubClient;
   netlify: NetlifyClient;
