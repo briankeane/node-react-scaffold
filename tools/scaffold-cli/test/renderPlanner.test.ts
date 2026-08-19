@@ -29,14 +29,16 @@ describe('planRender existence pass', () => {
     }
   });
 
-  it('enable jobs adds keyvalue first, production-worker, and REDIS_URL into production server+worker', () => {
+  it('enable jobs adds production-kv first, production-worker, and REDIS_URL wired to production-kv', () => {
     const out = ok(planRender(fx('base.yaml'), { staging: false, jobs: true })).output;
-    expect(out.indexOf('name: keyvalue')).toBeGreaterThan(-1);
+    expect(out.indexOf('name: production-kv')).toBeGreaterThan(-1);
+    expect(out).not.toContain('name: staging-kv'); // staging off => only production-kv
     expect(out.indexOf('type: keyvalue')).toBeLessThan(out.indexOf('name: production-server'));
     expect(out).toContain('name: production-worker');
     expect(out).toContain('ipAllowList: []');
-    // REDIS_URL present in both server and worker (2 occurrences)
+    // REDIS_URL present in both server and worker (2 occurrences), each wired to production-kv
     expect(out.match(/key: REDIS_URL/g)?.length).toBe(2);
+    expect(out.match(/name: production-kv/g)?.length).toBe(3); // the service + 2 fromService refs
     // positioned before fromGroup within the server block
     const serverSlice = out.slice(out.indexOf('name: production-server'), out.indexOf('name: production-worker'));
     expect(serverSlice.indexOf('REDIS_URL')).toBeLessThan(serverSlice.indexOf('fromGroup: production'));
@@ -71,6 +73,20 @@ describe('planRender order independence', () => {
     const both = ok(planRender(s, { staging: true, jobs: true })).output;
     expect(both).toContain('name: staging-worker');
     expect(both.match(/key: REDIS_URL/g)?.length).toBe(4); // staging+prod server+worker
+  });
+
+  it('per-env keyvalue: two kv services, each env wired to its OWN kv', () => {
+    const s = ok(planRender(fx('base.yaml'), { staging: true, jobs: false })).output;
+    const both = ok(planRender(s, { staging: true, jobs: true })).output;
+    expect(both).toContain('name: production-kv');
+    expect(both).toContain('name: staging-kv');
+    // staging services reference staging-kv; production services reference production-kv
+    const stagingSlice = both.slice(both.indexOf('name: staging-server'), both.indexOf('name: production-server'));
+    expect(stagingSlice).toContain('name: staging-kv');
+    expect(stagingSlice).not.toContain('name: production-kv');
+    const prodSlice = both.slice(both.indexOf('name: production-server'));
+    expect(prodSlice).toContain('name: production-kv');
+    expect(prodSlice).not.toContain('name: staging-kv');
   });
 });
 

@@ -5,14 +5,16 @@ import {
   STAGING_SERVER,
   STAGING_WORKER,
   PRODUCTION_WORKER,
-  KEYVALUE,
-  REDIS_URL_ITEM,
+  PRODUCTION_KV,
+  STAGING_KV,
+  redisUrlItem,
 } from './templates.js';
 import type { Desired, Plan, Conflict } from './config.js';
 
 const DB_ORDER = ['staging-db', 'production-db'];
 const SERVICE_ORDER = [
-  'keyvalue',
+  'production-kv',
+  'staging-kv',
   'staging-server',
   'staging-worker',
   'production-server',
@@ -82,11 +84,12 @@ function reconcileBlock(
 
 // Insert REDIS_URL into a server/worker map's envVars after DATABASE_URL, before
 // fromGroup: absent ⇒ insert; present-and-equal ⇒ no-op; different ⇒ conflict.
-function ensureRedisUrl(map: YAMLMap | undefined, conflicts: Conflict[]): boolean {
+// `fragment` is the env-specific REDIS_URL item (wired to that env's own kv).
+function ensureRedisUrl(map: YAMLMap | undefined, fragment: string, conflicts: Conflict[]): boolean {
   if (!map) return false;
   const envVars = map.get('envVars') as YAMLSeq | undefined;
   if (!isSeq(envVars)) return false;
-  const redisNode = templateNode(REDIS_URL_ITEM);
+  const redisNode = templateNode(fragment);
   const existing = envVars.items.find(
     (it) => isMap(it) && it.get('key') === 'REDIS_URL',
   ) as YAMLMap | undefined;
@@ -115,7 +118,11 @@ export function planRender(currentYaml: string, desired: Desired): Plan {
 
   // Existence pass: databases, then services, each in canonical order.
   if (desired.staging) changed = reconcileBlock(dbs, DB_ORDER, STAGING_DB, conflicts) || changed;
-  if (desired.jobs) changed = reconcileBlock(services, SERVICE_ORDER, KEYVALUE, conflicts) || changed;
+  if (desired.jobs) {
+    changed = reconcileBlock(services, SERVICE_ORDER, PRODUCTION_KV, conflicts) || changed;
+    if (desired.staging)
+      changed = reconcileBlock(services, SERVICE_ORDER, STAGING_KV, conflicts) || changed;
+  }
   if (desired.staging)
     changed = reconcileBlock(services, SERVICE_ORDER, STAGING_SERVER, conflicts) || changed;
   if (desired.staging && desired.jobs)
@@ -123,9 +130,11 @@ export function planRender(currentYaml: string, desired: Desired): Plan {
   if (desired.jobs)
     changed = reconcileBlock(services, SERVICE_ORDER, PRODUCTION_WORKER, conflicts) || changed;
 
-  // REDIS_URL pass: only when jobs are enabled.
+  // REDIS_URL pass: only when jobs are enabled. Each env is wired to its own kv.
   if (desired.jobs) {
-    const envs = ['production', ...(desired.staging ? ['staging'] : [])];
+    const envs: Array<'production' | 'staging'> = desired.staging
+      ? ['production', 'staging']
+      : ['production'];
     for (const env of envs) {
       for (const role of ['server', 'worker'] as const) {
         const svc = findByName(services, `${env}-${role}`);
@@ -135,7 +144,7 @@ export function planRender(currentYaml: string, desired: Desired): Plan {
           );
           continue;
         }
-        changed = ensureRedisUrl(svc, conflicts) || changed;
+        changed = ensureRedisUrl(svc, redisUrlItem(env), conflicts) || changed;
       }
     }
   }
