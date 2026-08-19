@@ -50,6 +50,9 @@ test-server-debug:
 test-client:
 	$(COMPOSE) exec client npm run test
 
+test-scaffold-cli:
+	cd tools/scaffold-cli && npm run test
+
 lint-server:
 	$(COMPOSE) exec server npm run lint
 
@@ -93,7 +96,7 @@ create-release-pr:
 	./scripts/release.sh
 
 .PHONY: find-open-ports install launch launch-detached terminate restart logs logs-server logs-client \
-	test-server test-server-file test-server-with-logging test-server-debug test-client \
+	test-server test-server-file test-server-with-logging test-server-debug test-client test-scaffold-cli \
 	lint-server lint-client prettier-server prettier-client \
 	prettier-all build-server build-client build-and-test-server migrate migrate-all \
 	generate-migration worker-debug create-release-pr
