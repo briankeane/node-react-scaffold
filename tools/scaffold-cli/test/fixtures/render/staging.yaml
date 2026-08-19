@@ -15,11 +15,36 @@
 #
 # Bootstrap order matters — see the "Deploying to Render" runbook in README.md.
 databases:
+  - name: staging-db
+    plan: basic-256mb
+    region: ohio
   - name: production-db
     plan: basic-256mb
     region: ohio
 
 services:
+  - type: web
+    name: staging-server
+    runtime: image
+    image:
+      url: ghcr.io/YOUR_ORG/YOUR_REPO:staging
+    region: ohio
+    plan: starter
+    dockerCommand: node dist/server.js
+    preDeployCommand: node dist/scripts/predeployMigrate.js
+    autoDeployTrigger: "off"
+    healthCheckPath: /v1/healthCheck
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10020"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: staging-db
+          property: connectionString
+      # Remaining secrets (e.g. JWT_SECRET) live in the `staging` env group.
+      - fromGroup: staging
   - type: web
     name: production-server
     runtime: image

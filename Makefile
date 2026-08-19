@@ -9,6 +9,7 @@ install:
 	[ -f ./client/.env ] || cp ./client/.env-example ./client/.env
 	./scripts/set-ports.sh
 	$(COMPOSE) build
+	cd tools/scaffold-cli && npm ci
 
 launch:
 	$(COMPOSE) up
@@ -49,6 +50,18 @@ test-server-debug:
 
 test-client:
 	$(COMPOSE) exec client npm run test
+
+scaffold-cli-deps:
+	cd tools/scaffold-cli && [ -d node_modules ] || npm ci
+
+test-scaffold-cli: scaffold-cli-deps
+	cd tools/scaffold-cli && npm run test
+
+enable-staging: scaffold-cli-deps
+	cd tools/scaffold-cli && npm run enable-staging
+
+enable-jobs: scaffold-cli-deps
+	cd tools/scaffold-cli && npm run enable-jobs
 
 lint-server:
 	$(COMPOSE) exec server npm run lint
@@ -93,7 +106,8 @@ create-release-pr:
 	./scripts/release.sh
 
 .PHONY: find-open-ports install launch launch-detached terminate restart logs logs-server logs-client \
-	test-server test-server-file test-server-with-logging test-server-debug test-client \
+	test-server test-server-file test-server-with-logging test-server-debug test-client test-scaffold-cli \
+	scaffold-cli-deps enable-staging enable-jobs \
 	lint-server lint-client prettier-server prettier-client \
 	prettier-all build-server build-client build-and-test-server migrate migrate-all \
 	generate-migration worker-debug create-release-pr

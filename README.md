@@ -60,11 +60,10 @@ Once running:
 
 ### Redis & BullMQ Job Queues
 
-Background job processing is included but Redis is disabled by default.
-
-1. Uncomment the `redis` service in `docker-compose.yaml`
-2. Uncomment `REDIS_URL=redis://redis:6379` in `server/.env`
-3. `make restart`
+Background job processing is built in but off by default — new projects don't run
+Redis or a worker. Turn it on with `make enable-jobs`, which adds the Redis and
+worker services to `docker-compose.yaml` (and `render.yaml`) and wires `REDIS_URL`
+into the server and worker. See [Optional deploy features](#optional-deploy-features) below.
 
 ### Google OAuth
 
@@ -268,10 +267,13 @@ must exist **before** the first Blueprint sync. Do this once per environment (st
    `DATABASE_URL` from the managed database and sets `NODE_ENV`/`PORT` inline.
 
 5. **Create the Blueprint** — Render Dashboard → **Blueprints** → **New Blueprint
-   Instance** → connect this repo and select `render.yaml`. Render provisions the
-   `staging-db` / `production-db` Postgres databases and the `staging-server`,
-   `staging-worker`, `production-server`, and `production-worker` services. (If an image is
-   private, select the registry credential when prompted.)
+   Instance** → connect this repo and select `render.yaml`. By default `render.yaml`
+   is production-only, so Render provisions just the `production-db` Postgres
+   database and the `production-server` service. Run `make enable-staging` and/or
+   `make enable-jobs` first (see [Optional deploy features](#optional-deploy-features)) to add the
+   `staging-db`/`staging-server` and the `staging-worker`/`production-worker`
+   services to `render.yaml` before creating (or syncing) the Blueprint. (If an image
+   is private, select the registry credential when prompted.)
 
 6. **Note the service IDs** (the `srv-xxxxx` value in each service's Settings URL).
 
@@ -398,6 +400,25 @@ push, and publishes `client/dist` — point the staging site at `develop` and th
 site at `main`. Alternatively, deploy from CI or locally with the Netlify CLI using the
 `NETLIFY_AUTH_TOKEN` and the target `NETLIFY_*_SITE_ID` from the secrets above:
 `npx netlify deploy --dir=client/dist --prod`.
+
+## Optional deploy features
+
+New projects start production-only. `scaffold.config.json` at the repo root is the
+single source of truth for which optional features are on:
+
+    { "features": { "staging": false, "jobs": false, "customDomain": false } }
+
+Add features later with idempotent one-shot commands (safe to re-run):
+
+- `make enable-staging` — adds a staging database + server to your Render blueprint
+  (`render.yaml`) and the `deploy-staging.yml` workflow (deploys on pushes to `develop`).
+- `make enable-jobs` — adds a Redis (Key Value) service and a worker to `render.yaml`
+  for every enabled environment, wiring `REDIS_URL` into each.
+
+Each command patches the relevant scaffold-owned blocks in `render.yaml`,
+`docker-compose.yaml`, and the workflow(s), and flips the flag in
+`scaffold.config.json`. If you have hand-edited a scaffold-owned block in a way the
+patcher can't reconcile, it aborts with a diff and changes nothing.
 
 ## Contributing
 

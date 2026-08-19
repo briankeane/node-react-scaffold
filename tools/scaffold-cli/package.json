@@ -1,0 +1,20 @@
+{
+  "name": "@scaffold/cli",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "enable-staging": "tsx src/cli.ts enable-staging",
+    "enable-jobs": "tsx src/cli.ts enable-jobs",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "yaml": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

@@ -20,6 +20,11 @@ databases:
     region: ohio
 
 services:
+  - type: keyvalue
+    name: keyvalue
+    plan: starter
+    region: ohio
+    ipAllowList: []
   - type: web
     name: production-server
     runtime: image
@@ -46,5 +51,37 @@ services:
         fromDatabase:
           name: production-db
           property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: keyvalue
+          type: keyvalue
+          property: connectionString
       # Remaining secrets (e.g. JWT_SECRET) live in the `production` env group.
+      - fromGroup: production
+  - type: worker
+    name: production-worker
+    runtime: image
+    image:
+      url: ghcr.io/YOUR_ORG/YOUR_REPO:production
+    region: ohio
+    plan: starter
+    dockerCommand: node dist/worker.js
+    # The web service owns DB migrations (predeployMigrate.js). The worker only
+    # validates env so it fails fast on bad config without racing that migration.
+    preDeployCommand: node dist/scripts/checkEnv.js
+    autoDeployTrigger: "off"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10020"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: production-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: keyvalue
+          type: keyvalue
+          property: connectionString
       - fromGroup: production

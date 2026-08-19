@@ -1,0 +1,7 @@
+{
+  "features": {
+    "staging": false,
+    "jobs": false,
+    "customDomain": false
+  }
+}
