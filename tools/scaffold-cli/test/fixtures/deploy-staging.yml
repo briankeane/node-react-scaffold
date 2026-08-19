@@ -1,0 +1,169 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches:
+      - develop
+
+# Serialize deploys to develop so two rapid merges can't race the mutable :staging
+# tag (build/push/deploy out of order). Don't cancel an in-flight deploy.
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: touch ./server/.env
+      - run: docker compose run server sh -c "npx env-cmd -f .env-test npm run build && npm test"
+
+  lint-server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: touch ./server/.env
+      - run: docker compose run server npm run lint
+
+  lint-client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: touch ./server/.env
+      - run: docker compose run client npm run lint
+
+  test-client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: touch ./server/.env
+      - run: docker compose run client npm test
+
+  # GHCR requires a LOWERCASE image path, but a GitHub owner/repo can contain
+  # uppercase. Derive `ghcr.io/<owner>/<repo>` and lowercase it once here, then
+  # share it with the build and deploy jobs as an output.
+  image-name:
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.derive.outputs.image }}
+    steps:
+      - id: derive
+        run: |
+          image="ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}"
+          echo "image=$(echo "$image" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+  # The Render deploy waits on RENDER_API_KEY (secrets can't be read in a job `if`,
+  # so this job surfaces its presence as an output). The image build below does NOT
+  # gate on this — it always runs on push to develop so the :staging image exists in
+  # GHCR before Render is configured (what the first Blueprint sync needs).
+  check-render:
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - id: check
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          if [ -n "$RENDER_API_KEY" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::RENDER_API_KEY not configured, skipping Render deploy"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-and-push-image:
+    needs: [build-and-test, lint-server, lint-client, test-client, image-name]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ${{ needs.image-name.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+      # Use the built-in GITHUB_TOKEN (auto-scoped to this repo, expires per-run) —
+      # no personal PAT needed to push to GHCR. The `packages: write` permission above
+      # is what authorizes it. Render pulls the image separately (make the package
+      # public or give Render a read-only credential).
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
+      - name: Build staging image
+        run: docker build -t "$IMAGE:staging" -t "$IMAGE:${{ github.sha }}" -f server/Dockerfile.production server
+      - name: Push images to GHCR
+        run: |
+          docker push "$IMAGE:staging"
+          docker push "$IMAGE:${{ github.sha }}"
+
+  deploy-to-render:
+    if: needs.check-render.outputs.enabled == 'true'
+    needs: [build-and-push-image, check-render, image-name]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy staging services on Render
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_STAGING_SERVICE_ID: ${{ secrets.RENDER_STAGING_SERVICE_ID }}
+          RENDER_STAGING_WORKER_SERVICE_ID: ${{ secrets.RENDER_STAGING_WORKER_SERVICE_ID }}
+          # Deploy the immutable per-commit tag (not the mutable :staging tag) so the
+          # deploy is deterministic and can't race another push to develop.
+          IMAGE_SHA: ${{ needs.image-name.outputs.image }}:${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          # Trigger a deploy pinned to IMAGE_SHA, then poll to "live". Non-zero exit
+          # (including pre_deploy_failed — a failed migration) fails the job fast.
+          deploy_and_wait() {
+            local name="$1" service_id="$2"
+            if [ -z "$service_id" ]; then
+              echo "  [$name] service ID is empty — set its RENDER_*_SERVICE_ID secret" >&2
+              return 1
+            fi
+            echo "Triggering Render deploy for $name ($IMAGE_SHA)..."
+            local resp deploy_id status
+            resp=$(curl -sf -X POST \
+              -H "Authorization: Bearer $RENDER_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d "{\"imageUrl\": \"$IMAGE_SHA\"}" \
+              "https://api.render.com/v1/services/$service_id/deploys")
+            # Render's create-deploy response defines the body (with .id) only for
+            # 201; guard against a null/empty id so we fail fast instead of polling
+            # /deploys/null for the full timeout window.
+            deploy_id=$(echo "$resp" | jq -r '.id')
+            if [ -z "$deploy_id" ] || [ "$deploy_id" = "null" ]; then
+              echo "  [$name] Render returned no deploy ID (response: $resp)" >&2
+              return 1
+            fi
+            echo "  [$name] deploy ID: $deploy_id"
+
+            for i in $(seq 1 90); do
+              status=$(curl -sf \
+                -H "Authorization: Bearer $RENDER_API_KEY" \
+                "https://api.render.com/v1/services/$service_id/deploys/$deploy_id" \
+                | jq -r '.status')
+              echo "  [$name] attempt $i: $status"
+              case "$status" in
+                live)
+                  echo "  [$name] deploy succeeded"
+                  return 0
+                  ;;
+                build_failed|update_failed|pre_deploy_failed|deactivated|canceled)
+                  echo "  [$name] deploy failed with status: $status" >&2
+                  return 1
+                  ;;
+              esac
+              sleep 10
+            done
+
+            echo "  [$name] timed out waiting for deploy" >&2
+            return 1
+          }
+
+          deploy_and_wait "staging-server" "$RENDER_STAGING_SERVICE_ID"
+
+          if [ -n "${RENDER_STAGING_WORKER_SERVICE_ID:-}" ]; then
+            deploy_and_wait "staging-worker" "$RENDER_STAGING_WORKER_SERVICE_ID"
+          else
+            echo "RENDER_STAGING_WORKER_SERVICE_ID not set — skipping worker deploy"
+          fi

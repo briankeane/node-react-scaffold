@@ -1,5 +1,16 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
 // Each template is a top-level YAML fragment. renderPlanner parses it and lifts the
 // single node it contains, so comments attached in the template travel with the node.
+
+// deploy-staging.yml is a whole GitHub Actions workflow file, not a YAML fragment.
+// It contains `${{ ... }}` expressions, which a JS template literal would try to
+// interpolate. Read the byte-exact PR1 content from a data file instead — see
+// templates/deploy-staging.yml (recovered verbatim via `git show`).
+const here = dirname(fileURLToPath(import.meta.url));
+export const DEPLOY_STAGING_WORKFLOW = readFileSync(join(here, 'templates/deploy-staging.yml'), 'utf8');
 
 export const STAGING_DB = `- name: staging-db
   plan: basic-256mb
