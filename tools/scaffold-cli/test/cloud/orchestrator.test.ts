@@ -161,6 +161,22 @@ describe('runSteps', () => {
     expect(applied).toEqual(['after']);
   });
 
+  it('an auth error while polling a manual step returns 2 (classified, not 1)', async () => {
+    let calls = 0;
+    const step: Step = {
+      name: 'blueprint',
+      kind: 'manual',
+      async check(): Promise<CheckResult> {
+        calls++;
+        if (calls === 1) return { state: 'needs_action', detail: 'pending' };
+        throw new AuthError('render token expired');
+      },
+      preview: () => 'blueprint',
+      async apply(): Promise<void> {},
+    };
+    expect(await runSteps(ctx('interactive', new FakeIO()), [step])).toBe(2);
+  });
+
   it('a conflict surfacing while polling a manual step returns 3', async () => {
     let calls = 0;
     const step: Step = {

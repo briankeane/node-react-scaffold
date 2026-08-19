@@ -114,15 +114,25 @@ export class RenderApi implements RenderClient {
 
   async listEnvGroups(): Promise<EnvGroup[]> {
     const items = (await this.listAll('/env-groups')) as Array<{ envGroup?: Record<string, unknown> }>;
-    return items.map((raw) => {
-      const g = (raw.envGroup ?? raw) as Record<string, unknown>;
-      const envVars = (g.envVars ?? []) as Array<{ key?: string }>;
-      return {
-        id: String(g.id),
-        name: String(g.name),
+    const out: EnvGroup[] = [];
+    for (const raw of items) {
+      const summary = (raw.envGroup ?? raw) as Record<string, unknown>;
+      const id = String(summary.id);
+      // The list response may omit envVars, which would make an existing JWT_SECRET
+      // look absent and get overwritten (rotated). Fetch the group detail, which
+      // carries envVars, whenever the list item doesn't include them.
+      let envVars = (summary.envVars ?? []) as Array<{ key?: string }>;
+      if (!Array.isArray(summary.envVars)) {
+        const detail = (await this.req(`/env-groups/${id}`)) as { envVars?: Array<{ key?: string }> };
+        envVars = detail.envVars ?? [];
+      }
+      out.push({
+        id,
+        name: String(summary.name),
         varKeys: envVars.map((v) => String(v.key)).filter(Boolean),
-      };
-    });
+      });
+    }
+    return out;
   }
 
   async createEnvGroup(name: string, vars: Record<string, string>): Promise<EnvGroup> {
@@ -136,10 +146,15 @@ export class RenderApi implements RenderClient {
 
   async addEnvGroupVars(groupId: string, vars: Record<string, string>): Promise<void> {
     for (const [key, value] of Object.entries(vars)) {
-      await this.req(`/env-groups/${groupId}/env-vars/${encodeURIComponent(key)}`, {
-        method: 'PUT',
-        body: JSON.stringify({ value }),
-      });
+      const path = `/env-groups/${groupId}/env-vars/${encodeURIComponent(key)}`;
+      // Never overwrite an existing var — a PUT would rotate e.g. JWT_SECRET.
+      try {
+        await this.req(path);
+        continue; // already present -> leave it
+      } catch (err) {
+        if (!(err instanceof NotFoundError)) throw err;
+      }
+      await this.req(path, { method: 'PUT', body: JSON.stringify({ value }) });
     }
   }
 }

@@ -59,8 +59,11 @@ async function runOne(ctx: CloudContext, step: Step): Promise<StepOutcome> {
         return 4;
       }
       // Poll check() to completion. A transient error (e.g. Render 503 mid-wait)
-      // keeps polling; a conflict (wrong-type service appears) surfaces as exit 3.
-      let conflict: ConflictError | undefined;
+      // keeps polling; any non-retryable error stops the poll and maps to its
+      // classified exit code (auth -> 2, conflict -> 3, other -> 1) instead of
+      // escaping unclassified.
+      let terminal: number | undefined;
+      let terminalMsg = '';
       const done = await io.poll(
         async () => {
           try {
@@ -68,19 +71,18 @@ async function runOne(ctx: CloudContext, step: Step): Promise<StepOutcome> {
             return again.state === 'satisfied' ? again : undefined;
           } catch (err) {
             if (err instanceof RetryableError) return undefined; // keep polling
-            if (err instanceof ConflictError) {
-              conflict = err;
-              return { state: 'conflict', detail: err.message }; // stop polling; handled below
-            }
-            throw err; // unexpected -> operational failure
+            const code = classify(err);
+            terminal = code === 'retry' ? 1 : code;
+            terminalMsg = (err as Error).message;
+            return { state: 'conflict', detail: terminalMsg }; // stop polling; handled below
           }
         },
         MANUAL_POLL_ATTEMPTS,
         MANUAL_POLL_DELAY_MS,
       );
-      if (conflict) {
-        io.print(`conflict [${step.name}]: ${conflict.message}`);
-        return 3;
+      if (terminal !== undefined) {
+        io.print(`[${step.name}] ${terminalMsg}`);
+        return terminal;
       }
       if (!done) {
         io.print(`manual action still pending: ${step.name} (re-run once done)`);
