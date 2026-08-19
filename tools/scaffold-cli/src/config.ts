@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 
 export interface ScaffoldConfig {
   features: { staging: boolean; jobs: boolean; customDomain: boolean };
@@ -25,6 +25,21 @@ const FLAGS = ['staging', 'jobs', 'customDomain'] as const;
 
 export function configPath(rootDir: string): string {
   return join(rootDir, 'scaffold.config.json');
+}
+
+// Walk up from startDir to the nearest ancestor containing scaffold.config.json
+// (the single source of truth). Lets the CLI be invoked from any working
+// directory — e.g. the Makefile's `cd tools/scaffold-cli && npm run ...`.
+export function findRepoRoot(startDir: string): string {
+  let dir = startDir;
+  for (;;) {
+    if (existsSync(configPath(dir))) return dir;
+    const parent = dirname(dir);
+    if (parent === dir) {
+      throw new ConfigError(`scaffold.config.json not found in ${startDir} or any parent`);
+    }
+    dir = parent;
+  }
 }
 
 export function loadConfig(rootDir: string): ScaffoldConfig {
