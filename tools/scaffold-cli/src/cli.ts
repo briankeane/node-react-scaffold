@@ -1,6 +1,7 @@
 import { findRepoRoot, ConfigError } from './config.js';
 import { enableStaging, enableJobs, enableDomain } from './commands.js';
 import { setupCloud } from './setupCloud.js';
+import { setupLocal, realRunner } from './setupLocal.js';
 import type { Env, Mode } from './cloud/types.js';
 
 const USAGE =
@@ -8,6 +9,7 @@ const USAGE =
   '  enable-staging\n' +
   '  enable-jobs\n' +
   '  enable-domain <domain> [--env production|staging]\n' +
+  '  setup local\n' +
   '  setup cloud [--plan | --yes]';
 
 // Validate a `--env` value (default production).
@@ -45,9 +47,9 @@ async function run(cmd: string | undefined, args: string[], rootDir: string): Pr
     }
     case 'setup': {
       const sub = args[0];
+      if (sub === 'local') return setupLocal(rootDir, { run: realRunner(rootDir) });
       if (sub === 'cloud') return setupCloud(rootDir, { mode: parseMode(args.slice(1)) });
-      // `setup local` is wired in a later change.
-      console.error('Usage: scaffold-cli setup <cloud> [--plan | --yes]');
+      console.error('Usage: scaffold-cli setup <local | cloud> [--plan | --yes]');
       return 2;
     }
     default:
