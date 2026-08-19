@@ -4,6 +4,12 @@ set -euo pipefail
 
 SCAFFOLD_NAME="node-react-scaffold"
 
+# Cleaned up on any exit — if `sed` below fails, `set -e` aborts the script
+# before the explicit `rm`, so an EXIT trap is what actually reclaims the file.
+TMP_FILE=""
+cleanup() { [ -n "$TMP_FILE" ] && rm -f "$TMP_FILE"; }
+trap cleanup EXIT
+
 # Portable in-place edit. `sed -i` differs between BSD/macOS (`-i ''`) and
 # GNU/Linux (`-i`); writing through a temp file behaves identically on both.
 # Returns 0 only when the file actually changed, 1 when the pattern didn't match
@@ -12,15 +18,16 @@ SCAFFOLD_NAME="node-react-scaffold"
 replace_in_file() {
   local expr=$1 file=$2
   [ -f "$file" ] || return 1
-  local tmp
-  tmp=$(mktemp)
-  sed "$expr" "$file" >"$tmp"
-  if cmp -s "$tmp" "$file"; then
-    rm -f "$tmp"
+  TMP_FILE=$(mktemp)
+  sed "$expr" "$file" >"$TMP_FILE"
+  if cmp -s "$TMP_FILE" "$file"; then
+    rm -f "$TMP_FILE"
+    TMP_FILE=""
     return 1
   fi
-  cat "$tmp" >"$file"
-  rm -f "$tmp"
+  cat "$TMP_FILE" >"$file"
+  rm -f "$TMP_FILE"
+  TMP_FILE=""
   return 0
 }
 
