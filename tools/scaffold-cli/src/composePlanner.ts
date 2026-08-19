@@ -1,4 +1,4 @@
-import { Document, YAMLMap, Pair, Scalar } from 'yaml';
+import { Document, YAMLMap, Pair, Scalar, isMap } from 'yaml';
 import { parseDoc, stringifyDoc, structurallyEqual, unifiedDiff } from './yamlUtil.js';
 import { COMPOSE_REDIS, COMPOSE_WORKER } from './templates.js';
 import type { Desired, Plan, Conflict } from './config.js';
@@ -54,8 +54,43 @@ function reconcileService(
   return true;
 }
 
+const SERVER_REDIS_URL = 'redis://redis:6379';
+
+// Field-level owned edit on the base `server` service: inject REDIS_URL into its
+// `environment` map (mirroring the worker) so the local API can enqueue jobs.
+// Absent ⇒ insert (before `command`, matching the worker's key order); present-and-
+// equal ⇒ no-op; present-and-different ⇒ conflict. No other server line is touched.
+function ensureServerRedisUrl(doc: Document, services: YAMLMap, conflicts: Conflict[]): boolean {
+  const server = services.get('server');
+  if (!isMap(server)) return false;
+
+  const env = server.get('environment');
+  if (isMap(env)) {
+    if (env.has('REDIS_URL')) {
+      const existing = env.get('REDIS_URL');
+      if (existing !== SERVER_REDIS_URL) {
+        conflicts.push({
+          block: 'compose: server.environment.REDIS_URL',
+          diff: unifiedDiff(String(SERVER_REDIS_URL), String(existing), 'REDIS_URL'),
+        });
+      }
+      return false;
+    }
+    env.set('REDIS_URL', SERVER_REDIS_URL);
+    return true;
+  }
+
+  const envMap = new YAMLMap();
+  envMap.set('REDIS_URL', SERVER_REDIS_URL);
+  const pair = doc.createPair('environment', envMap);
+  const idx = server.items.findIndex((p) => keyOf(p) === 'command');
+  if (idx === -1) server.items.push(pair);
+  else server.items.splice(idx, 0, pair);
+  return true;
+}
+
 export function planCompose(currentYaml: string, desired: Desired): Plan {
-  const doc = parseDoc(currentYaml);
+  const doc = parseDoc(currentYaml, 'docker-compose.yaml');
   const services = doc.get('services') as YAMLMap;
   const conflicts: Conflict[] = [];
   let changed = false;
@@ -64,6 +99,7 @@ export function planCompose(currentYaml: string, desired: Desired): Plan {
     changed = reconcileService(doc, services, 'redis', COMPOSE_REDIS, conflicts) || changed;
     changed =
       reconcileService(doc, services, 'worker', COMPOSE_WORKER, conflicts, 'server') || changed;
+    changed = ensureServerRedisUrl(doc, services, conflicts) || changed;
   }
 
   if (conflicts.length > 0) return { ok: false, conflicts };

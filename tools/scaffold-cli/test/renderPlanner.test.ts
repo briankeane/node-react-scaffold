@@ -74,6 +74,32 @@ describe('planRender order independence', () => {
   });
 });
 
+describe('planRender malformed input', () => {
+  it('throws a descriptive error naming the file on unparseable YAML', () => {
+    expect(() => planRender('{ this: is: not valid yaml', { staging: true, jobs: false })).toThrow(
+      /Failed to parse render\.yaml/,
+    );
+  });
+});
+
+describe('planRender warnings', () => {
+  it('warns (ok:true) when jobs enabled but the expected production-server is missing', () => {
+    const renamed = fx('base.yaml').replace('name: production-server', 'name: renamed-server');
+    const p = planRender(renamed, { staging: false, jobs: true });
+    expect(p.ok).toBe(true);
+    if (p.ok) {
+      expect(p.warnings?.length).toBeGreaterThan(0);
+      expect(p.warnings?.some((w) => w.includes('production-server'))).toBe(true);
+    }
+  });
+
+  it('no warnings on the happy path', () => {
+    const p = planRender(fx('base.yaml'), { staging: false, jobs: true });
+    expect(p.ok).toBe(true);
+    if (p.ok) expect(p.warnings ?? []).toHaveLength(0);
+  });
+});
+
 describe('planRender golden fixtures', () => {
   it('matches the committed golden files byte-for-byte', () => {
     expect(ok(planRender(fx('base.yaml'), { staging: true, jobs: false })).output).toBe(fx('staging.yaml'));

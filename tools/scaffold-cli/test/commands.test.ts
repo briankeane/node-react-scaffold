@@ -43,6 +43,14 @@ describe('enable commands', () => {
     expect(cfg(a)).toEqual({ staging: true, jobs: true, customDomain: false });
   });
 
+  it('a corrupt render.yaml throws before any write (config flag not flipped)', () => {
+    const d = freshRoot();
+    writeFileSync(join(d, 'render.yaml'), '{ this: is: not valid yaml');
+    const before = cfg(d).staging;
+    expect(() => enableStaging(d)).toThrow(/Failed to parse render\.yaml/);
+    expect(cfg(d).staging).toBe(before); // flag not flipped: throw happened before commitWrites
+  });
+
   it('a conflict aborts with exit 1 and mutates nothing (flag stays, files unchanged)', () => {
     const d = freshRoot();
     enableStaging(d);

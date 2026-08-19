@@ -65,6 +65,7 @@ export function enableJobs(rootDir: string): number {
   if (compose.changed) writes.push({ path: join(rootDir, COMPOSE), content: compose.output });
 
   commitWrites(rootDir, writes, { features: { ...config.features, jobs: true } });
+  for (const w of render.warnings ?? []) console.error(w);
   console.log('Background jobs enabled.');
   return 0;
 }

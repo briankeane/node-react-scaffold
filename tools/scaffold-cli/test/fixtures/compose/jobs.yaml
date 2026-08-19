@@ -38,6 +38,8 @@ services:
       - migrate
     env_file:
       - ./server/.env
+    environment:
+      REDIS_URL: redis://redis:6379
     command: ['npm', 'run', 'dev']
   worker:
     build:

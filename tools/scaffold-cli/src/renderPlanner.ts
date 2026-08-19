@@ -106,10 +106,11 @@ function ensureRedisUrl(map: YAMLMap | undefined, conflicts: Conflict[]): boolea
 }
 
 export function planRender(currentYaml: string, desired: Desired): Plan {
-  const doc = parseDoc(currentYaml);
+  const doc = parseDoc(currentYaml, 'render.yaml');
   const dbs = doc.get('databases') as YAMLSeq;
   const services = doc.get('services') as YAMLSeq;
   const conflicts: Conflict[] = [];
+  const warnings: string[] = [];
   let changed = false;
 
   // Existence pass: databases, then services, each in canonical order.
@@ -126,11 +127,19 @@ export function planRender(currentYaml: string, desired: Desired): Plan {
   if (desired.jobs) {
     const envs = ['production', ...(desired.staging ? ['staging'] : [])];
     for (const env of envs) {
-      changed = ensureRedisUrl(findByName(services, `${env}-server`), conflicts) || changed;
-      changed = ensureRedisUrl(findByName(services, `${env}-worker`), conflicts) || changed;
+      for (const role of ['server', 'worker'] as const) {
+        const svc = findByName(services, `${env}-${role}`);
+        if (!svc) {
+          warnings.push(
+            `warning: jobs enabled but no ${env}-${role} found in render.yaml; REDIS_URL not wired`,
+          );
+          continue;
+        }
+        changed = ensureRedisUrl(svc, conflicts) || changed;
+      }
     }
   }
 
   if (conflicts.length > 0) return { ok: false, conflicts };
-  return { ok: true, output: stringifyDoc(doc), changed };
+  return { ok: true, output: stringifyDoc(doc), changed, warnings };
 }

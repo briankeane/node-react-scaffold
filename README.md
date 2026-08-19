@@ -408,10 +408,10 @@ single source of truth for which optional features are on:
 
 Add features later with idempotent one-shot commands (safe to re-run):
 
-- `make enable-staging` — adds a staging database + server on Render and the
-  `deploy-staging.yml` workflow (deploys on pushes to `develop`).
-- `make enable-jobs` — adds background jobs: a Redis (Key Value) service and a
-  worker for every enabled environment, wiring `REDIS_URL` into each.
+- `make enable-staging` — adds a staging database + server to your Render blueprint
+  (`render.yaml`) and the `deploy-staging.yml` workflow (deploys on pushes to `develop`).
+- `make enable-jobs` — adds a Redis (Key Value) service and a worker to `render.yaml`
+  for every enabled environment, wiring `REDIS_URL` into each.
 
 Each command patches the relevant scaffold-owned blocks in `render.yaml`,
 `docker-compose.yaml`, and the workflow(s), and flips the flag in

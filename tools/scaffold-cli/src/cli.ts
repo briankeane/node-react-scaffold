@@ -1,4 +1,4 @@
-import { findRepoRoot, ConfigError } from './config.js';
+import { findRepoRoot } from './config.js';
 import { enableStaging, enableJobs } from './commands.js';
 
 const cmd = process.argv[2];
@@ -12,14 +12,12 @@ if (!fn) {
   process.exit(2);
 }
 
-let rootDir: string;
+// Surface ConfigError, YAML parse errors, and any other command failure as a
+// clean one-line message rather than a raw stack trace.
 try {
-  rootDir = findRepoRoot(process.cwd());
+  const rootDir = findRepoRoot(process.cwd());
+  process.exit(fn(rootDir));
 } catch (err) {
-  if (err instanceof ConfigError) {
-    console.error(err.message);
-    process.exit(1);
-  }
-  throw err;
+  console.error((err as Error).message);
+  process.exit(1);
 }
-process.exit(fn(rootDir));

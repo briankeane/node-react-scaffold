@@ -23,6 +23,33 @@ describe('planCompose', () => {
     }
   });
 
+  it('jobs on also wires REDIS_URL into the existing server service (2 occurrences)', () => {
+    const p = planCompose(fx('base.yaml'), { staging: false, jobs: true });
+    if (!p.ok) throw new Error('unexpected conflict: ' + JSON.stringify(p.conflicts));
+    // both server and worker now carry REDIS_URL so the local API can enqueue
+    expect(p.output.match(/REDIS_URL: redis:\/\/redis:6379/g)?.length).toBe(2);
+    // the server block gets environment: REDIS_URL right before its command
+    const serverSlice = p.output.slice(
+      p.output.indexOf('  server:'),
+      p.output.indexOf('  worker:'),
+    );
+    expect(serverSlice).toContain('environment:');
+    expect(serverSlice).toContain('REDIS_URL: redis://redis:6379');
+    expect(serverSlice.indexOf('REDIS_URL')).toBeLessThan(serverSlice.indexOf("command: ['npm', 'run', 'dev']"));
+  });
+
+  it('conflicts when server.environment.REDIS_URL was hand-edited to a different value', () => {
+    const once = planCompose(fx('base.yaml'), { staging: false, jobs: true });
+    if (!once.ok) throw new Error('unexpected');
+    const mangled = once.output.replace(
+      /environment:\n {6}REDIS_URL: redis:\/\/redis:6379\n {4}command: \['npm', 'run', 'dev'\]/,
+      "environment:\n      REDIS_URL: redis://HACKED:6379\n    command: ['npm', 'run', 'dev']",
+    );
+    const p = planCompose(mangled, { staging: false, jobs: true });
+    expect(p.ok).toBe(false);
+    if (!p.ok) expect(p.conflicts[0].block).toContain('server.environment.REDIS_URL');
+  });
+
   it('does not reformat unowned lines (only adds redis+worker blocks)', () => {
     const p = planCompose(fx('base.yaml'), { staging: false, jobs: true });
     if (!p.ok) throw new Error('unexpected conflict: ' + JSON.stringify(p.conflicts));

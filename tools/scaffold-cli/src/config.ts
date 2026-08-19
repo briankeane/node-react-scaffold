@@ -18,7 +18,7 @@ export interface Conflict {
 }
 
 export type Plan =
-  | { ok: true; output: string; changed: boolean }
+  | { ok: true; output: string; changed: boolean; warnings?: string[] }
   | { ok: false; conflicts: Conflict[] };
 
 const FLAGS = ['staging', 'jobs', 'customDomain'] as const;

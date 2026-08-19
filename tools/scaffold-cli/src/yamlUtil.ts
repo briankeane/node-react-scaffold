@@ -1,7 +1,11 @@
 import { parseDocument, Document, isNode } from 'yaml';
 
-export function parseDoc(text: string): Document.Parsed {
-  return parseDocument(text, { keepSourceTokens: false });
+export function parseDoc(text: string, label = 'YAML'): Document.Parsed {
+  const doc = parseDocument(text, { keepSourceTokens: false });
+  if (doc.errors.length > 0) {
+    throw new Error(`Failed to parse ${label}: ${doc.errors[0].message}`);
+  }
+  return doc;
 }
 
 // Deterministic stringify. `yaml` preserves comments and existing quote styles by
