@@ -111,14 +111,18 @@ The project uses `PORT_OFFSET` (in `.env`) to avoid port conflicts when running 
 
 This project includes [Claude Code](https://claude.ai/claude-code) skills for AI-assisted development:
 
-| Command            | Description                                                               |
-| ------------------ | ------------------------------------------------------------------------- |
-| `/create-model`    | Create a Sequelize model with migration, types, and tests (TDD)           |
-| `/create-endpoint` | Create a REST API endpoint with integration tests and OpenAPI docs        |
-| `/create-lib`      | Create library functions with TDD, one function at a time                 |
-| `/create-feature`  | Create a client feature (service + context + page + route)                |
-| `/diagnose-flaky`  | Step-by-step flaky test diagnosis                                         |
-| `/deploy`          | Interactive deployment setup (Render, Cloudflare, GitHub Actions, Google OAuth) |
+| Command            | Description                                                                      |
+| ------------------ | -------------------------------------------------------------------------------- |
+| `/create-model`    | Create a Sequelize model with migration, types, and tests (TDD)                  |
+| `/create-endpoint` | Create a REST API endpoint with integration tests and OpenAPI docs               |
+| `/create-lib`      | Create library functions with TDD, one function at a time                        |
+| `/create-feature`  | Create a client feature (service + context + page + route)                       |
+| `/diagnose-flaky`  | Step-by-step flaky test diagnosis                                                |
+| `/deploy`          | Interactive deployment setup (Render, Cloudflare, GitHub Actions, Google OAuth)  |
+| `/setup`           | Provision local dev stack or full cloud deploy (Render, Netlify, GitHub Actions) |
+| `/enable-staging`  | Idempotently enable the staging environment                                      |
+| `/enable-jobs`     | Idempotently enable background jobs (Redis + worker)                             |
+| `/enable-domain`   | Add a custom domain and get registrar DNS guidance                               |
 
 Skills live in `.claude/skills/` and teach Claude the project's conventions so it generates code that matches existing patterns.
 
@@ -220,7 +224,7 @@ Docker image — production does **not** depend on staging existing.
 
 The deploy is driven by GitHub Actions (`.github/workflows/deploy-staging.yml` and
 `deploy-production.yml`), not by Render building from git — the Render services are
-`runtime: image` and only *pull* the tag.
+`runtime: image` and only _pull_ the tag.
 
 **Pipeline flow (per branch):**
 
@@ -326,10 +330,10 @@ To point a custom domain at your Render services:
 
 2. **Create a CNAME record** with your DNS provider pointing the subdomain to your Render service hostname:
 
-   | Subdomain       | Type  | Target                                  |
-   | --------------- | ----- | --------------------------------------- |
-   | `api-staging`   | CNAME | `myapp-staging-server.onrender.com`     |
-   | `api`           | CNAME | `myapp-production-server.onrender.com`  |
+   | Subdomain     | Type  | Target                                 |
+   | ------------- | ----- | -------------------------------------- |
+   | `api-staging` | CNAME | `myapp-staging-server.onrender.com`    |
+   | `api`         | CNAME | `myapp-production-server.onrender.com` |
 
 3. **Wait for DNS propagation** and verify the domain is active in Render's Custom Domains panel.
 
@@ -370,11 +374,11 @@ Go to https://app.netlify.com/user/applications#personal-access-tokens and creat
 
 Add these three secrets to the GitHub repo (Settings → Secrets → Actions):
 
-| Secret                       | Value                                              |
-| ---------------------------- | -------------------------------------------------- |
-| `NETLIFY_AUTH_TOKEN`         | The personal access token from the previous step   |
-| `NETLIFY_STAGING_SITE_ID`   | The Project ID printed when creating the staging site    |
-| `NETLIFY_PRODUCTION_SITE_ID`| The Project ID printed when creating the production site |
+| Secret                       | Value                                                    |
+| ---------------------------- | -------------------------------------------------------- |
+| `NETLIFY_AUTH_TOKEN`         | The personal access token from the previous step         |
+| `NETLIFY_STAGING_SITE_ID`    | The Project ID printed when creating the staging site    |
+| `NETLIFY_PRODUCTION_SITE_ID` | The Project ID printed when creating the production site |
 
 ### Custom Domains (Optional)
 
@@ -454,13 +458,13 @@ is already done, so it is safe to re-run after a failure or the manual pause.
 
 ### Exit codes
 
-| Code | Meaning |
-| ---- | ------- |
-| `0`  | Completed, or `PLAN=1` produced a clean plan, or you declined a gate and it stopped cleanly |
-| `1`  | Transient/operational failure after retries |
-| `2`  | Usage/config error (bad flags, missing `RENDER_API_KEY`, not authenticated) |
+| Code | Meaning                                                                                                               |
+| ---- | --------------------------------------------------------------------------------------------------------------------- |
+| `0`  | Completed, or `PLAN=1` produced a clean plan, or you declined a gate and it stopped cleanly                           |
+| `1`  | Transient/operational failure after retries                                                                           |
+| `2`  | Usage/config error (bad flags, missing `RENDER_API_KEY`, not authenticated)                                           |
 | `3`  | Conflict/unsafe state (e.g. a Render service exists with the wrong type, or a Netlify site under a different account) |
-| `4`  | Manual action required (Blueprint sync pending under `YES=1`) |
+| `4`  | Manual action required (Blueprint sync pending under `YES=1`)                                                         |
 
 > **DNS / Cloudflare:** if you use a custom domain, add the CNAME record as **DNS
 > only** (grey cloud), not Proxied — see [Custom Domain Setup](#custom-domain-setup).

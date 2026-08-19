@@ -9,13 +9,17 @@ Docker Compose for orchestration. All cross-project commands are in the root `Ma
 
 ## Task-Type Quick Reference
 
-| Task Type                  | Read This                |
-| -------------------------- | ------------------------ |
-| Creating a database model  | `/create-model` skill    |
-| Creating library functions | `/create-lib` skill      |
-| Creating an API endpoint   | `/create-endpoint` skill |
-| Creating a client feature  | `/create-feature` skill  |
-| Debugging flaky tests      | `/diagnose-flaky` skill  |
+| Task Type                   | Read This                |
+| --------------------------- | ------------------------ |
+| Creating a database model   | `/create-model` skill    |
+| Creating library functions  | `/create-lib` skill      |
+| Creating an API endpoint    | `/create-endpoint` skill |
+| Creating a client feature   | `/create-feature` skill  |
+| Debugging flaky tests       | `/diagnose-flaky` skill  |
+| Local or cloud provisioning | `/setup` skill           |
+| Enabling staging            | `/enable-staging` skill  |
+| Enabling background jobs    | `/enable-jobs` skill     |
+| Enabling a custom domain    | `/enable-domain` skill   |
 
 ## Codebase Map
 
