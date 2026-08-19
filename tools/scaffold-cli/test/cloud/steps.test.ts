@@ -144,6 +144,16 @@ describe('setup cloud steps', () => {
     expect(netlify.siteEnv.get('site-1')?.VITE_SERVER_BASE_URL).toBe('https://app.onrender.com'); // env now set
   });
 
+  it('corrects a stale Netlify VITE_SERVER_BASE_URL on resume', async () => {
+    const render = new FakeRender({ services: [prodServer()] }); // url https://app.onrender.com
+    const netlify = new FakeNetlify({ sites: [{ id: 'site-1', name: 'app-production', accountSlug: 'acme-team' }] });
+    netlify.siteEnv.set('site-1', { VITE_SERVER_BASE_URL: 'https://OLD.onrender.com' }); // stale
+    const { ctx } = mkCtx({ render, netlify });
+    const code = await runSteps(ctx, buildSteps());
+    expect(code).toBe(0);
+    expect(netlify.siteEnv.get('site-1')?.VITE_SERVER_BASE_URL).toBe('https://app.onrender.com'); // corrected
+  });
+
   it('scope conflict (image path from a different repo) returns exit 3', async () => {
     const render = new FakeRender({
       services: [{ id: 'srv-x', name: 'production-server', type: 'web', imagePath: 'ghcr.io/acme/app-preview:production', url: 'https://x' }],

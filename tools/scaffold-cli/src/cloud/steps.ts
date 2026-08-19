@@ -269,6 +269,9 @@ function netlifySites(): Step {
     kind: 'gate',
     async check(ctx): Promise<CheckResult> {
       const slug = await ctx.netlify.accountSlug();
+      // Resolve the expected Render origin per env (throws on dup/mismatch). When
+      // the blueprint isn't synced yet the map is empty and we only check presence.
+      const { services } = await resolveServices(ctx);
       const pending: string[] = [];
       for (const env of ctx.envs) {
         const site = await ctx.netlify.findSite(siteName(ctx.repo.name, env));
@@ -282,13 +285,17 @@ function netlifySites(): Step {
             detail: `Netlify site ${site.name} exists under account ${site.accountSlug}, expected ${slug}`,
           };
         }
-        // A prior run may have created the site but failed before setting the env
-        // (e.g. the Render URL wasn't live yet). Verify VITE_SERVER_BASE_URL is
-        // actually set so we don't skip it on resume.
-        const url = await ctx.netlify.getSiteEnv(site.id, 'VITE_SERVER_BASE_URL');
-        if (!url) pending.push(`set VITE_SERVER_BASE_URL on ${siteName(ctx.repo.name, env)}`);
+        // A prior run may have created the site but failed before setting the env,
+        // or the site may carry a STALE origin from a previous deploy. Require
+        // VITE_SERVER_BASE_URL to be set AND to equal the current Render origin.
+        const current = await ctx.netlify.getSiteEnv(site.id, 'VITE_SERVER_BASE_URL');
+        const expected = services.get(serverName(env))?.url;
+        if (!current) pending.push(`set VITE_SERVER_BASE_URL on ${siteName(ctx.repo.name, env)}`);
+        else if (expected && current !== expected) {
+          pending.push(`update VITE_SERVER_BASE_URL on ${siteName(ctx.repo.name, env)} (${current} -> ${expected})`);
+        }
       }
-      if (!pending.length) return satisfied('Netlify site(s) present with VITE_SERVER_BASE_URL');
+      if (!pending.length) return satisfied('Netlify site(s) present with correct VITE_SERVER_BASE_URL');
       return needs(pending.join('; '));
     },
     preview(ctx): string {

@@ -78,14 +78,20 @@ export class GitHubCli implements GitHubClient {
 
   async imageExists(image: string, tag: string): Promise<boolean> {
     const pkg = image.split('/').pop() ?? image; // ghcr.io/owner/repo -> repo
+    const MAX_PAGES = 50; // 5000 versions; the tag rides a recent one, but an env
+    // built far less often than the other can push its tag past page 1.
     for (const scope of await this.packageScopes(pkg)) {
       try {
-        // The moving :production / :staging tag rides the newest version, so the
-        // first page (100 newest) is enough. Avoid `--paginate` here: gh emits each
-        // page as a separate JSON document, which JSON.parse can't read as one array.
-        const out = await this.gh(['api', `${scope}/versions?per_page=100`]);
-        const versions = JSON.parse(out) as Array<{ metadata?: { container?: { tags?: string[] } } }>;
-        return versions.some((v) => v.metadata?.container?.tags?.includes(tag));
+        // Paginate manually (one page per call so JSON.parse gets a single array —
+        // `gh --paginate` concatenates pages into multiple JSON documents).
+        for (let page = 1; page <= MAX_PAGES; page++) {
+          const out = await this.gh(['api', `${scope}/versions?per_page=100&page=${page}`]);
+          const versions = JSON.parse(out) as Array<{ metadata?: { container?: { tags?: string[] } } }>;
+          if (versions.length === 0) break;
+          if (versions.some((v) => v.metadata?.container?.tags?.includes(tag))) return true;
+          if (versions.length < 100) break; // last page
+        }
+        return false; // package exists in this scope but the tag isn't present
       } catch (err) {
         if (err instanceof NotFoundError) continue; // package not found under this scope
         throw err;
