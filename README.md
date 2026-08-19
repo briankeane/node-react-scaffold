@@ -250,7 +250,9 @@ must exist **before** the first Blueprint sync. Do this once per environment (st
 
 1. **Update `render.yaml`** — Replace `YOUR_ORG/YOUR_REPO` with your GitHub owner and repo
    name, **lowercased** (e.g. `ghcr.io/myorg/myapp:production`). The CI workflows lowercase
-   the path they build/push, so keep the Blueprint consistent with them.
+   the path they build/push, so keep the Blueprint consistent with them. `scripts/init-project.sh`
+   does this automatically when the `origin` remote already points at your repo; this step is
+   the fallback when it doesn't.
 
 2. **Push the branch once** so the workflow builds and pushes the first image
    (`develop` → `:staging`, `main` → `:production`). The build authenticates to GHCR with

@@ -98,7 +98,7 @@ Walk through CI/CD pipeline setup. The pipeline builds Docker images, pushes to 
    - `RENDER_STAGING_WORKER_SERVICE_ID` — Service ID for staging-worker (optional)
    - `RENDER_PRODUCTION_SERVICE_ID` — Service ID for production-server
    - `RENDER_PRODUCTION_WORKER_SERVICE_ID` — Service ID for production-worker (optional)
-6. **Update render.yaml** — Replace `YOUR_ORG/YOUR_REPO` in `render.yaml` with the GHCR image path (e.g. `ghcr.io/myorg/myrepo`)
+6. **Update render.yaml** — Replace `YOUR_ORG/YOUR_REPO` in `render.yaml` with the GHCR image path (e.g. `ghcr.io/myorg/myrepo`). `scripts/init-project.sh` sets this automatically when the `origin` remote points at your repo; only needed if the placeholder is still present.
 
 ## Section 4: Google OAuth
 
