@@ -64,7 +64,8 @@ function ensureServerRedisUrl(doc: Document, services: YAMLMap, conflicts: Confl
   const server = services.get('server');
   if (!isMap(server)) return false;
 
-  const env = server.get('environment');
+  const envPair = server.items.find((p) => keyOf(p) === 'environment');
+  const env = envPair?.value;
   if (isMap(env)) {
     if (env.has('REDIS_URL')) {
       const existing = env.get('REDIS_URL');
@@ -78,6 +79,19 @@ function ensureServerRedisUrl(doc: Document, services: YAMLMap, conflicts: Confl
     }
     env.set('REDIS_URL', SERVER_REDIS_URL);
     return true;
+  }
+
+  if (envPair) {
+    // `environment` is present but not a map (e.g. list form) — fail closed
+    // instead of inserting a second `environment:` key, which would corrupt
+    // the compose file.
+    conflicts.push({
+      block: 'compose: server.environment',
+      diff:
+        'server.environment must be a map (e.g. `KEY: value` pairs) to inject REDIS_URL; ' +
+        'found a non-map form. Convert it to map form and re-run.',
+    });
+    return false;
   }
 
   const envMap = new YAMLMap();

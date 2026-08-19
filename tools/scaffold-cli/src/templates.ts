@@ -131,6 +131,7 @@ volumes:
 depends_on:
   - postgres
   - migrate
+  - redis
 env_file:
   - ./server/.env
 environment:

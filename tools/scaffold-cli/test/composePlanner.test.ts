@@ -23,6 +23,20 @@ describe('planCompose', () => {
     }
   });
 
+  it('conflicts (does not duplicate the key) when server.environment is list-form', () => {
+    const base = fx('base.yaml');
+    const listForm = base.replace(
+      "    env_file:\n      - ./server/.env\n    command: ['npm', 'run', 'dev']",
+      "    env_file:\n      - ./server/.env\n    environment:\n      - FEATURE_FLAG=true\n    command: ['npm', 'run', 'dev']",
+    );
+    expect(listForm).not.toBe(base);
+    const p = planCompose(listForm, { staging: false, jobs: true });
+    expect(p.ok).toBe(false);
+    if (!p.ok) {
+      expect(p.conflicts.some((c) => c.block === 'compose: server.environment')).toBe(true);
+    }
+  });
+
   it('jobs on also wires REDIS_URL into the existing server service (2 occurrences)', () => {
     const p = planCompose(fx('base.yaml'), { staging: false, jobs: true });
     if (!p.ok) throw new Error('unexpected conflict: ' + JSON.stringify(p.conflicts));

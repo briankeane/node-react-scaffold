@@ -60,11 +60,10 @@ Once running:
 
 ### Redis & BullMQ Job Queues
 
-Background job processing is included but Redis is disabled by default.
-
-1. Uncomment the `redis` service in `docker-compose.yaml`
-2. Uncomment `REDIS_URL=redis://redis:6379` in `server/.env`
-3. `make restart`
+Background job processing is built in but off by default — new projects don't run
+Redis or a worker. Turn it on with `make enable-jobs`, which adds the Redis and
+worker services to `docker-compose.yaml` (and `render.yaml`) and wires `REDIS_URL`
+into the server and worker. See [Optional features](#optional-features) below.
 
 ### Google OAuth
 
@@ -268,10 +267,13 @@ must exist **before** the first Blueprint sync. Do this once per environment (st
    `DATABASE_URL` from the managed database and sets `NODE_ENV`/`PORT` inline.
 
 5. **Create the Blueprint** — Render Dashboard → **Blueprints** → **New Blueprint
-   Instance** → connect this repo and select `render.yaml`. Render provisions the
-   `staging-db` / `production-db` Postgres databases and the `staging-server`,
-   `staging-worker`, `production-server`, and `production-worker` services. (If an image is
-   private, select the registry credential when prompted.)
+   Instance** → connect this repo and select `render.yaml`. By default `render.yaml`
+   is production-only, so Render provisions just the `production-db` Postgres
+   database and the `production-server` service. Run `make enable-staging` and/or
+   `make enable-jobs` first (see [Optional features](#optional-features)) to add the
+   `staging-db`/`staging-server` and the `staging-worker`/`production-worker`
+   services to `render.yaml` before creating (or syncing) the Blueprint. (If an image
+   is private, select the registry credential when prompted.)
 
 6. **Note the service IDs** (the `srv-xxxxx` value in each service's Settings URL).
 
