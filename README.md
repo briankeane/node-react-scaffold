@@ -63,7 +63,7 @@ Once running:
 Background job processing is built in but off by default — new projects don't run
 Redis or a worker. Turn it on with `make enable-jobs`, which adds the Redis and
 worker services to `docker-compose.yaml` (and `render.yaml`) and wires `REDIS_URL`
-into the server and worker. See [Optional features](#optional-features) below.
+into the server and worker. See [Optional deploy features](#optional-deploy-features) below.
 
 ### Google OAuth
 
@@ -270,7 +270,7 @@ must exist **before** the first Blueprint sync. Do this once per environment (st
    Instance** → connect this repo and select `render.yaml`. By default `render.yaml`
    is production-only, so Render provisions just the `production-db` Postgres
    database and the `production-server` service. Run `make enable-staging` and/or
-   `make enable-jobs` first (see [Optional features](#optional-features)) to add the
+   `make enable-jobs` first (see [Optional deploy features](#optional-deploy-features)) to add the
    `staging-db`/`staging-server` and the `staging-worker`/`production-worker`
    services to `render.yaml` before creating (or syncing) the Blueprint. (If an image
    is private, select the registry credential when prompted.)
@@ -401,7 +401,7 @@ site at `main`. Alternatively, deploy from CI or locally with the Netlify CLI us
 `NETLIFY_AUTH_TOKEN` and the target `NETLIFY_*_SITE_ID` from the secrets above:
 `npx netlify deploy --dir=client/dist --prod`.
 
-## Optional features
+## Optional deploy features
 
 New projects start production-only. `scaffold.config.json` at the repo root is the
 single source of truth for which optional features are on:
