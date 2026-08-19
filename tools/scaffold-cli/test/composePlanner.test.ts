@@ -18,11 +18,22 @@ describe('planCompose', () => {
       expect(p.output).toContain('redis:');
       expect(p.output).toContain('image: "redis:alpine"');
       expect(p.output).toContain('worker:');
-      // yaml's default stringifier pads flow sequences (`[ "a", "b" ]`); the golden
-      // fixture below is the byte-exact oracle, this is secondary smoke only.
-      expect(p.output).toContain('command: [ "npm", "run", "worker" ]');
+      expect(p.output).toContain('command: ["npm", "run", "worker"]');
       expect(p.output).toContain('REDIS_URL: redis://redis:6379');
     }
+  });
+
+  it('does not reformat unowned lines (only adds redis+worker blocks)', () => {
+    const p = planCompose(fx('base.yaml'), { staging: false, jobs: true });
+    if (!p.ok) throw new Error('unexpected conflict: ' + JSON.stringify(p.conflicts));
+    // These pre-existing flow sequences must round-trip byte-identical, not gain
+    // yaml's default inner padding (`[ 'a', 'b' ]`) — the planner must only touch
+    // the blocks it owns (redis/worker), never reformat unrelated services.
+    expect(p.output).toContain(
+      "test: ['CMD-SHELL', 'pg_isready', '-u', 'postgres', '-d', 'serverdev']",
+    );
+    expect(p.output).toContain("command: ['npm', 'run', 'dev']");
+    expect(p.output).toContain("command: ['npm', 'run', 'migrate:all']");
   });
 
   it('is idempotent', () => {

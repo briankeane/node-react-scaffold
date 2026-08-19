@@ -15,7 +15,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: pass
     healthcheck:
-      test: [ 'CMD-SHELL', 'pg_isready', '-u', 'postgres', '-d', 'serverdev' ]
+      test: ['CMD-SHELL', 'pg_isready', '-u', 'postgres', '-d', 'serverdev']
       interval: 1s
       timeout: 60s
       retries: 5
@@ -38,7 +38,7 @@ services:
       - migrate
     env_file:
       - ./server/.env
-    command: [ 'npm', 'run', 'dev' ]
+    command: ['npm', 'run', 'dev']
   worker:
     build:
       context: ./server
@@ -59,7 +59,7 @@ services:
       - ./server/.env
     environment:
       REDIS_URL: redis://redis:6379
-    command: [ "npm", "run", "worker" ]
+    command: ["npm", "run", "worker"]
 
   migrate:
     build:
@@ -74,7 +74,7 @@ services:
 
     env_file:
       - ./server/.env
-    command: [ 'npm', 'run', 'migrate:all' ]
+    command: ['npm', 'run', 'migrate:all']
 
   client:
     build:

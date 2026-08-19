@@ -6,8 +6,11 @@ export function parseDoc(text: string): Document.Parsed {
 
 // Deterministic stringify. `yaml` preserves comments and existing quote styles by
 // default; keep line width unlimited so long image URLs / commands don't wrap.
+// flowCollectionPadding: false keeps `['a', 'b']` un-padded so re-stringifying
+// UNOWNED flow sequences (e.g. docker-compose `command: [...]`) round-trips
+// byte-identical instead of drifting to `[ 'a', 'b' ]`.
 export function stringifyDoc(doc: Document): string {
-  return doc.toString({ lineWidth: 0 });
+  return doc.toString({ lineWidth: 0, flowCollectionPadding: false });
 }
 
 // Structural equality that ignores comments, anchors, and key order, but does NOT
