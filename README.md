@@ -399,6 +399,25 @@ site at `main`. Alternatively, deploy from CI or locally with the Netlify CLI us
 `NETLIFY_AUTH_TOKEN` and the target `NETLIFY_*_SITE_ID` from the secrets above:
 `npx netlify deploy --dir=client/dist --prod`.
 
+## Optional features
+
+New projects start production-only. `scaffold.config.json` at the repo root is the
+single source of truth for which optional features are on:
+
+    { "features": { "staging": false, "jobs": false, "customDomain": false } }
+
+Add features later with idempotent one-shot commands (safe to re-run):
+
+- `make enable-staging` — adds a staging database + server on Render and the
+  `deploy-staging.yml` workflow (deploys on pushes to `develop`).
+- `make enable-jobs` — adds background jobs: a Redis (Key Value) service and a
+  worker for every enabled environment, wiring `REDIS_URL` into each.
+
+Each command patches the relevant scaffold-owned blocks in `render.yaml`,
+`docker-compose.yaml`, and the workflow(s), and flips the flag in
+`scaffold.config.json`. If you have hand-edited a scaffold-owned block in a way the
+patcher can't reconcile, it aborts with a diff and changes nothing.
+
 ## Contributing
 
 1. Create a feature branch from `develop`

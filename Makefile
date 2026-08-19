@@ -53,6 +53,12 @@ test-client:
 test-scaffold-cli:
 	cd tools/scaffold-cli && npm run test
 
+enable-staging:
+	cd tools/scaffold-cli && npm run enable-staging
+
+enable-jobs:
+	cd tools/scaffold-cli && npm run enable-jobs
+
 lint-server:
 	$(COMPOSE) exec server npm run lint
 
@@ -97,6 +103,7 @@ create-release-pr:
 
 .PHONY: find-open-ports install launch launch-detached terminate restart logs logs-server logs-client \
 	test-server test-server-file test-server-with-logging test-server-debug test-client test-scaffold-cli \
+	enable-staging enable-jobs \
 	lint-server lint-client prettier-server prettier-client \
 	prettier-all build-server build-client build-and-test-server migrate migrate-all \
 	generate-migration worker-debug create-release-pr
