@@ -51,4 +51,25 @@ export class NetlifyCli implements NetlifyClient {
   async setSiteEnv(siteId: string, key: string, value: string): Promise<void> {
     await this.nf(['env:set', key, value, '--site', siteId]);
   }
+
+  async getSiteEnv(siteId: string, key: string): Promise<string | undefined> {
+    // Best-effort read; on any failure return undefined so the step safely
+    // re-applies (setSiteEnv is idempotent) rather than crashing.
+    try {
+      const out = (await this.nf(['env:get', key, '--json', '--site', siteId])).trim();
+      if (!out) return undefined;
+      try {
+        const parsed = JSON.parse(out) as Record<string, unknown>;
+        if (parsed && typeof parsed === 'object' && key in parsed) {
+          const v = parsed[key];
+          return v == null || v === '' ? undefined : String(v);
+        }
+      } catch {
+        // not JSON — fall through to plain-text handling
+      }
+      return /not set|no value/i.test(out) ? undefined : out;
+    } catch {
+      return undefined;
+    }
+  }
 }

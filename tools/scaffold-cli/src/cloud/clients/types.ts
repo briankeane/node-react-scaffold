@@ -52,4 +52,5 @@ export interface NetlifyClient {
   findSite(name: string): Promise<NetlifySite | undefined>;
   createSite(name: string, accountSlug: string): Promise<NetlifySite>;
   setSiteEnv(siteId: string, key: string, value: string): Promise<void>;
+  getSiteEnv(siteId: string, key: string): Promise<string | undefined>;
 }

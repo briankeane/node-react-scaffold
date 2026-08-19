@@ -14,6 +14,14 @@ export const siteName = (repo: string, env: Env): string => `${repo}-${env}`;
 // GHCR container package is named after the repo, lowercased.
 export const ghcrPackageName = (repo: string): string => repo.toLowerCase();
 
+// A Render service's imagePath belongs to this repo iff its repository component
+// equals ctx.repo.image exactly — either the bare image or image followed by a
+// `:tag`. Substring matching would wrongly accept ghcr.io/acme/app-preview for
+// ghcr.io/acme/app, binding an unrelated service's ID into this repo's secrets.
+export function imageMatches(imagePath: string, image: string): boolean {
+  return imagePath === image || imagePath.startsWith(`${image}:`);
+}
+
 // The GitHub Actions secrets required for the enabled envs + features.
 export function requiredSecrets(ctx: CloudContext): string[] {
   const out = ['RENDER_API_KEY', 'NETLIFY_AUTH_TOKEN'];
@@ -66,7 +74,7 @@ async function resolveServices(
     if (svc.type !== type) {
       throw new ConflictError(`Render service "${name}" is type ${svc.type}, expected ${type}`);
     }
-    if (svc.imagePath && !svc.imagePath.includes(ctx.repo.image)) {
+    if (svc.imagePath && !imageMatches(svc.imagePath, ctx.repo.image)) {
       throw new ConflictError(
         `Render service "${name}" pulls ${svc.imagePath}, expected image ${ctx.repo.image} (wrong repo/scope)`,
       );
@@ -231,15 +239,23 @@ function netlifySites(): Step {
       const pending: string[] = [];
       for (const env of ctx.envs) {
         const site = await ctx.netlify.findSite(siteName(ctx.repo.name, env));
-        if (!site) pending.push(`create ${siteName(ctx.repo.name, env)}`);
-        else if (site.accountSlug !== slug) {
+        if (!site) {
+          pending.push(`create ${siteName(ctx.repo.name, env)}`);
+          continue;
+        }
+        if (site.accountSlug !== slug) {
           return {
             state: 'conflict',
             detail: `Netlify site ${site.name} exists under account ${site.accountSlug}, expected ${slug}`,
           };
         }
+        // A prior run may have created the site but failed before setting the env
+        // (e.g. the Render URL wasn't live yet). Verify VITE_SERVER_BASE_URL is
+        // actually set so we don't skip it on resume.
+        const url = await ctx.netlify.getSiteEnv(site.id, 'VITE_SERVER_BASE_URL');
+        if (!url) pending.push(`set VITE_SERVER_BASE_URL on ${siteName(ctx.repo.name, env)}`);
       }
-      if (!pending.length) return satisfied('Netlify site(s) present');
+      if (!pending.length) return satisfied('Netlify site(s) present with VITE_SERVER_BASE_URL');
       return needs(pending.join('; '));
     },
     preview(ctx): string {

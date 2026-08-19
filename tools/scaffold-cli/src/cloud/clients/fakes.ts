@@ -168,4 +168,8 @@ export class FakeNetlify extends Failable implements NetlifyClient {
     cur[key] = value;
     this.siteEnv.set(siteId, cur);
   }
+  async getSiteEnv(siteId: string, key: string): Promise<string | undefined> {
+    this.enter('getSiteEnv');
+    return this.siteEnv.get(siteId)?.[key];
+  }
 }

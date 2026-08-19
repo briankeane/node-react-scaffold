@@ -1,5 +1,5 @@
 import type { GitHubClient } from './types.js';
-import { NotFoundError } from './types.js';
+import { NotFoundError, ToolError } from './types.js';
 import { execCapture } from './exec.js';
 
 // GitHub client over the `gh` CLI. gh carries its own auth + the current repo
@@ -29,15 +29,22 @@ export class GitHubCli implements GitHubClient {
     return this.ownerCache;
   }
 
-  async packageVisibility(pkg: string): Promise<'public' | 'private' | 'unknown'> {
+  // Owner-scoped package API paths, in probe order: the authenticated user's own
+  // packages (works for PRIVATE packages, unlike /users/{owner}), then the org.
+  private async packageScopes(pkg: string): Promise<string[]> {
     const { owner } = await this.currentRepo();
-    for (const scope of [`/users/${owner}`, `/orgs/${owner}`]) {
+    const p = encodeURIComponent(pkg);
+    return [`/user/packages/container/${p}`, `/orgs/${owner}/packages/container/${p}`];
+  }
+
+  async packageVisibility(pkg: string): Promise<'public' | 'private' | 'unknown'> {
+    for (const scope of await this.packageScopes(pkg)) {
       try {
-        const out = await this.gh(['api', `${scope}/packages/container/${encodeURIComponent(pkg)}`]);
+        const out = await this.gh(['api', scope]);
         const v = (JSON.parse(out) as { visibility?: string }).visibility;
         if (v === 'public' || v === 'private') return v;
       } catch (err) {
-        if (err instanceof NotFoundError) continue; // try the other owner scope
+        if (err instanceof NotFoundError) continue; // try the next owner scope
         throw err;
       }
     }
@@ -45,21 +52,13 @@ export class GitHubCli implements GitHubClient {
   }
 
   async setPackagePublic(pkg: string): Promise<void> {
-    const { owner } = await this.currentRepo();
-    // GHCR visibility change endpoint. If GitHub returns 404 for this owner scope,
-    // fall back to the org scope; if both fail the user can flip it in the UI
-    // (documented in the README cloud runbook).
+    // GitHub's package-visibility update is a PUT to .../visibility. Try the
+    // authenticated user's own package first, then the org. If neither works,
+    // guide the user to the UI toggle (documented in the README cloud runbook).
     let lastErr: unknown;
-    for (const scope of [`/users/${owner}`, `/orgs/${owner}`]) {
+    for (const scope of await this.packageScopes(pkg)) {
       try {
-        await this.gh([
-          'api',
-          '--method',
-          'PATCH',
-          `${scope}/packages/container/${encodeURIComponent(pkg)}/visibility`,
-          '-f',
-          'visibility=public',
-        ]);
+        await this.gh(['api', '--method', 'PUT', `${scope}/visibility`, '-f', 'visibility=public']);
         return;
       } catch (err) {
         lastErr = err;
@@ -67,22 +66,21 @@ export class GitHubCli implements GitHubClient {
         throw err;
       }
     }
-    throw lastErr instanceof Error ? lastErr : new Error('failed to set package visibility');
+    throw new ToolError(
+      `Could not set GHCR package "${pkg}" public via the API (${(lastErr as Error)?.message ?? 'not found'}). ` +
+        'Flip it in the UI (Packages -> ' +
+        pkg +
+        ' -> Package settings -> Change visibility -> Public), or attach a Render registry credential, then re-run.',
+    );
   }
 
   async imageExists(image: string, tag: string): Promise<boolean> {
-    const { owner } = await this.currentRepo();
     const pkg = image.split('/').pop() ?? image; // ghcr.io/owner/repo -> repo
-    for (const scope of [`/users/${owner}`, `/orgs/${owner}`]) {
+    for (const scope of await this.packageScopes(pkg)) {
       try {
-        const out = await this.gh([
-          'api',
-          '--paginate',
-          `${scope}/packages/container/${encodeURIComponent(pkg)}/versions`,
-        ]);
+        const out = await this.gh(['api', '--paginate', `${scope}/versions`]);
         const versions = JSON.parse(out) as Array<{ metadata?: { container?: { tags?: string[] } } }>;
-        if (versions.some((v) => v.metadata?.container?.tags?.includes(tag))) return true;
-        return false;
+        return versions.some((v) => v.metadata?.container?.tags?.includes(tag));
       } catch (err) {
         if (err instanceof NotFoundError) continue; // package not found under this scope
         throw err;

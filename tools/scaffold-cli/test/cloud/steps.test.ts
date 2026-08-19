@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { runSteps } from '../../src/cloud/orchestrator.js';
-import { buildSteps, requiredSecrets, expectedServices, ghcrPackageName } from '../../src/cloud/steps.js';
+import { buildSteps, requiredSecrets, expectedServices, ghcrPackageName, imageMatches } from '../../src/cloud/steps.js';
 import { FakeRender, FakeGitHub, FakeNetlify } from '../../src/cloud/clients/fakes.js';
 import type { CloudContext, Env, IO, Mode } from '../../src/cloud/types.js';
 import type { RenderService } from '../../src/cloud/clients/types.js';
@@ -95,6 +95,7 @@ describe('setup cloud steps', () => {
       secrets: ['RENDER_API_KEY', 'NETLIFY_AUTH_TOKEN', 'RENDER_PRODUCTION_SERVICE_ID', 'NETLIFY_PRODUCTION_SITE_ID'],
     });
     const netlify = new FakeNetlify({ sites: [{ id: 'site-1', name: 'app-production', accountSlug: 'acme-team' }] });
+    netlify.siteEnv.set('site-1', { VITE_SERVER_BASE_URL: 'https://app.onrender.com' });
     const { ctx, io } = mkCtx({ render, github, netlify });
     const code = await runSteps(ctx, buildSteps());
     expect(code).toBe(0);
@@ -127,6 +128,25 @@ describe('setup cloud steps', () => {
     expect(code).toBe(4);
     // ghcr-visibility gate ran before the manual step under --yes
     expect(github.visibility).toBe('public');
+  });
+
+  it('resumes a partial Netlify run: site exists but VITE unset -> sets it, exit 0', async () => {
+    const render = new FakeRender({ services: [prodServer()] });
+    // site created by a prior aborted run, but VITE_SERVER_BASE_URL never written
+    const netlify = new FakeNetlify({ sites: [{ id: 'site-1', name: 'app-production', accountSlug: 'acme-team' }] });
+    const { ctx } = mkCtx({ render, netlify });
+    const code = await runSteps(ctx, buildSteps());
+    expect(code).toBe(0);
+    expect(netlify.calls).not.toContain('createSite'); // not re-created
+    expect(netlify.siteEnv.get('site-1')?.VITE_SERVER_BASE_URL).toBe('https://app.onrender.com'); // env now set
+  });
+
+  it('scope conflict (image path from a different repo) returns exit 3', async () => {
+    const render = new FakeRender({
+      services: [{ id: 'srv-x', name: 'production-server', type: 'web', imagePath: 'ghcr.io/acme/app-preview:production', url: 'https://x' }],
+    });
+    const { ctx } = mkCtx({ render });
+    expect(await runSteps(ctx, buildSteps())).toBe(3);
   });
 
   it('scope conflict (worker typed as web) returns exit 3', async () => {
@@ -186,5 +206,12 @@ describe('step pure helpers', () => {
 
   it('ghcrPackageName lowercases the repo name', () => {
     expect(ghcrPackageName('MyApp')).toBe('myapp');
+  });
+
+  it('imageMatches respects the repo boundary (no substring false-positives)', () => {
+    expect(imageMatches('ghcr.io/acme/app:production', 'ghcr.io/acme/app')).toBe(true);
+    expect(imageMatches('ghcr.io/acme/app', 'ghcr.io/acme/app')).toBe(true);
+    expect(imageMatches('ghcr.io/acme/app-preview:production', 'ghcr.io/acme/app')).toBe(false);
+    expect(imageMatches('ghcr.io/acme/appx', 'ghcr.io/acme/app')).toBe(false);
   });
 });
