@@ -60,12 +60,13 @@ Then add:
 
 - **Generic DNS instructions**: log into whatever registrar/DNS provider hosts the
   domain, add a **CNAME record** with the host name from the domain the user gave you,
-  pointing at the target the CLI printed. Give this in general terms — describe the
-  fields (record type, host, target, TTL), not exact click-by-click navigation for a
-  specific provider, since UIs change and you can't verify them live. If the user
-  names their registrar, you can tailor the wording (e.g. "in most registrars this is
-  under DNS settings → Add record"), but frame it as general guidance, not a verified
-  walkthrough.
+  pointing at the **resolved `onrender.com` hostname they looked up** (per the note
+  above — never the literal `<your-<env>-server>` placeholder text). Give this in
+  general terms — describe the fields (record type, host, target, TTL), not exact
+  click-by-click navigation for a specific provider, since UIs change and you can't
+  verify them live. If the user names their registrar, you can tailor the wording
+  (e.g. "in most registrars this is under DNS settings → Add record"), but frame it as
+  general guidance, not a verified walkthrough.
 - **Cloudflare grey-cloud gotcha**: if the user's DNS is on Cloudflare (or they don't
   know), explicitly warn: set the new record to **DNS only (grey cloud)**, not
   proxied (orange cloud). A proxied CNAME to an onrender.com target causes Render's

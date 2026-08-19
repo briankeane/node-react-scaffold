@@ -181,19 +181,40 @@ run must be reverted with `git checkout --` immediately after)
 
 **Files:** none
 
-- [ ] `make build-server && make lint-server && make test-server`
-- [ ] client equivalents
-- [ ] `make test-scaffold-cli`
-- [ ] `make prettier-all`
-- [ ] confirm no client build artifacts staged
+- [x] `make build-server && make lint-server && make test-server` — 85 passing.
+- [x] client equivalents — lint clean, tests passing.
+- [x] `make test-scaffold-cli` — 102 passing (unaffected; no scaffold-cli code
+      changed).
+- [x] `make prettier-all` (server + client) — clean, no changes. Root-level markdown
+      (`CLAUDE.md`, `README.md`, the plan doc, the four `SKILL.md` files) isn't
+      covered by `make prettier-all` (it only formats `server/`/`client/`), so also
+      ran `npx prettier --write` on those directly against the repo's root
+      `prettier.config.cjs`.
+- [x] Confirmed no client build artifacts staged (`git status` clean besides the
+      intended files).
 
 ## Task 9: Codex adversarial pass
 
 **Files:** none
 
-- [ ] `/codex review` on the final diff (skills-markdown + 2 doc tables; skip a heavy
-      challenge pass per the triviality-threshold rule unless review surfaces
-      something non-trivial).
+- [x] `/codex review` on the final diff against `develop`. Two P2 findings, both
+      fixed:
+      1. `.claude/skills/setup/SKILL.md` — Step 4 (`--plan`) didn't branch on its own
+         exit code before Step 5's approval; a failed/partial plan run (e.g. transient
+         error) could fall through to approval + `--yes` without the user ever seeing
+         the full gate text. Fixed: added an explicit "check the plan run's exit code,
+         stop on non-zero" step.
+      2. `.claude/skills/enable-domain/SKILL.md` — the DNS instructions said to point
+         the CNAME "at the target the CLI printed," directly contradicting the
+         placeholder warning two paragraphs above it (the CLI prints a literal
+         `<your-production-server>` placeholder, not a real hostname). Fixed: now says
+         to point at "the resolved `onrender.com` hostname they looked up... never the
+         literal placeholder text."
+      No P1s. GATE: PASS after fixes (both were pre-existing-diff findings, not
+      regressions from the fix itself). Skipped a separate challenge pass — the diff
+      is skills-markdown + 2 doc tables with no re-implemented logic, matching the
+      triviality-threshold rule's "skip challenge" carve-out once review itself came
+      back clean.
 
 ## Task 10: Push + PR
 

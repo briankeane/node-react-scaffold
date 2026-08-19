@@ -78,6 +78,13 @@ This mutates nothing; it prints each step's plan, including the exact wording fo
 **gate** (public GHCR exposure, Netlify site creation) and the **manual** Blueprint
 step's instructions. Capture the full output.
 
+**Check the plan run's own exit code before continuing.** A non-zero exit here (2
+auth/config, 3 conflict, or anything else) means the plan is incomplete or the CLI
+never reached later gate steps — relay the CLI's message verbatim per the same
+exit-code handling as Step 6 below, and **stop**. Do not proceed to Step 5/6 on a
+partial or failed plan; approving and running `--yes` off an incomplete plan risks
+auto-applying gates (GHCR/Netlify) the user never actually saw the text for.
+
 ## Step 5: Cloud setup — approve
 
 Present the CLI's plan output to the user and ask for approval before running the real
