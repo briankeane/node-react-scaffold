@@ -401,6 +401,88 @@ site at `main`. Alternatively, deploy from CI or locally with the Netlify CLI us
 `NETLIFY_AUTH_TOKEN` and the target `NETLIFY_*_SITE_ID` from the secrets above:
 `npx netlify deploy --dir=client/dist --prod`.
 
+## Cloud setup (automated)
+
+The manual Render + Netlify runbooks above are the reference. `make setup-cloud`
+automates everything **around** the one unavoidable manual step (the Render
+Blueprint dashboard click), with confirmation gates on every paid, irreversible,
+or exposing action. It reads `scaffold.config.json` and provisions **every enabled
+env** (production, plus staging and the workers if you enabled them) in one pass.
+
+### Prerequisites
+
+- **`gh`** installed and authenticated (`gh auth login`).
+- **`netlify`** CLI installed and logged in (`netlify login`).
+- **`RENDER_API_KEY`** and **`NETLIFY_AUTH_TOKEN`** exported in your shell (the CLI
+  reads them from the environment and stores them as GitHub Actions secrets).
+
+### Three modes
+
+```bash
+make setup-cloud PLAN=1   # dry run: print the full resource-by-resource plan, change nothing
+make setup-cloud          # interactive: confirm each paid/exposing action
+make setup-cloud YES=1    # skip prompts (for scripted/skill-driven use after you approved the plan)
+```
+
+`setup cloud` is idempotent and resumable: it detects existing state (Render
+services/env groups by name, `gh secret list`, Netlify sites) and skips whatever
+is already done, so it is safe to re-run after a failure or the manual pause.
+
+### What it does, in order
+
+1. **Preflight** — verifies `gh`/`netlify` auth and `RENDER_API_KEY`.
+2. **First image** — checks the `:production` (and `:staging`) image exists in GHCR;
+   if not, tells you to push `main`/`develop` (or `gh workflow run`) first.
+3. **[GATE] GHCR visibility** — makes the GHCR package **public** so Render can pull
+   it (or use a Render registry credential instead). Confirms before exposing.
+4. **Render env group(s)** — creates a per-env group with a generated strong
+   `JWT_SECRET`. An existing `JWT_SECRET` is never rotated.
+5. **[MANUAL] Blueprint sync** — the one unavoidable click. Prints exact
+   instructions + a deep link; the paid DB/keyvalue/services are created here (Render
+   shows the monthly cost on that screen — the gate for the infra itself). Interactive
+   mode waits and polls until the services appear; `YES=1` stops with a clear
+   "manual action required" (exit 4) so a script can surface it.
+6. **Read back service IDs** — matches each service by **name and type** (and image
+   path) so a secret can never bind to the wrong service.
+7. **[GATE] Netlify sites** — creates a site per env and sets `VITE_SERVER_BASE_URL`
+   to that env's Render server origin (sets the origin; does not verify reachability).
+8. **GitHub secrets** — sets only the missing ones: `RENDER_API_KEY`,
+   `RENDER_{PRODUCTION,STAGING}_SERVICE_ID`, `RENDER_{…}_WORKER_SERVICE_ID` (when jobs
+   are on), `NETLIFY_AUTH_TOKEN`, `NETLIFY_{PRODUCTION,STAGING}_SITE_ID`.
+9. **Summary** — what was created/skipped and the DNS next steps if you enabled a
+   custom domain.
+
+### Exit codes
+
+| Code | Meaning |
+| ---- | ------- |
+| `0`  | Completed, or `PLAN=1` produced a clean plan, or you declined a gate and it stopped cleanly |
+| `1`  | Transient/operational failure after retries |
+| `2`  | Usage/config error (bad flags, missing `RENDER_API_KEY`, not authenticated) |
+| `3`  | Conflict/unsafe state (e.g. a Render service exists with the wrong type, or a Netlify site under a different account) |
+| `4`  | Manual action required (Blueprint sync pending under `YES=1`) |
+
+> **DNS / Cloudflare:** if you use a custom domain, add the CNAME record as **DNS
+> only** (grey cloud), not Proxied — see [Custom Domain Setup](#custom-domain-setup).
+
+### Assumptions
+
+- **A dedicated Render workspace/project.** The env groups are named `production` /
+  `staging` because `render.yaml` references them via `fromGroup`. If the same Render
+  workspace already hosts another app with a `production` env group, `setup cloud` will
+  reuse it — use a separate workspace/project per scaffold. Likewise it refuses to act
+  when a Render **service** name is duplicated (a preview, a second Blueprint) rather
+  than guessing which one is yours.
+- **A clean secret slate.** GitHub Actions secrets are write-only, so `setup cloud`
+  can verify a secret's presence but not its value. If the repo carries a stale
+  `RENDER_*_SERVICE_ID` / `NETLIFY_*_SITE_ID` from a previous deployment, clear it
+  first — otherwise setup reports success while CI deploys the wrong resource.
+
+### Local setup
+
+`make setup-local` verifies Docker is running, then drives `make install` (env
+files, ports, build) and `make launch-detached`. Tail logs with `make logs`.
+
 ## Optional deploy features
 
 New projects start production-only. `scaffold.config.json` at the repo root is the
@@ -412,8 +494,17 @@ Add features later with idempotent one-shot commands (safe to re-run):
 
 - `make enable-staging` — adds a staging database + server to your Render blueprint
   (`render.yaml`) and the `deploy-staging.yml` workflow (deploys on pushes to `develop`).
-- `make enable-jobs` — adds a Redis (Key Value) service and a worker to `render.yaml`
-  for every enabled environment, wiring `REDIS_URL` into each.
+- `make enable-jobs` — adds a **per-env** Redis (Key Value) service and a worker to
+  `render.yaml` for every enabled environment (`production-kv`, and `staging-kv` when
+  staging is on), wiring each env's `REDIS_URL` to its **own** keyvalue. Separate
+  instances keep staging and production BullMQ queues fully isolated — both envs run
+  `NODE_ENV=production`, so a shared Redis would cross-contaminate their queues.
+  (Local `docker-compose` stays single-redis on purpose: one dev box, no env split,
+  so there is nothing to cross-contaminate.)
+- `make enable-domain DOMAIN=api.example.com [ENV=staging]` — adds a custom domain to
+  the target env's server service in `render.yaml` (defaults to `production`) and
+  prints the CNAME target. Re-running with a different domain **replaces** it (so you
+  can change the domain after deploy); re-running with the same domain is a no-op.
 
 Each command patches the relevant scaffold-owned blocks in `render.yaml`,
 `docker-compose.yaml`, and the workflow(s), and flips the flag in

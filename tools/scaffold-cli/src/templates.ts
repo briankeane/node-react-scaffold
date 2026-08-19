@@ -90,25 +90,32 @@ export const PRODUCTION_WORKER = `- type: worker
     - fromGroup: production
 `;
 
-// Single shared Key Value. ipAllowList is REQUIRED by Render's Blueprint spec;
-// [] means internal-only (no public access). NOTE for PR3: staging + production
-// share one Redis here (per the brief's single-keyvalue design) — revisit isolation
-// during cloud provisioning.
-export const KEYVALUE = `- type: keyvalue
-  name: keyvalue
+// One Key Value (Redis) per enabled env. staging + production both run
+// NODE_ENV=production, so a single shared instance would share BullMQ queues
+// across envs (cross-contamination). Separate instances mirror the per-env DB
+// pattern and give full isolation. ipAllowList is REQUIRED by Render's Blueprint
+// spec; [] means internal-only (no public access).
+function keyValue(name: string): string {
+  return `- type: keyvalue
+  name: ${name}
   plan: starter
   region: ohio
   ipAllowList: []
 `;
+}
+export const PRODUCTION_KV = keyValue('production-kv');
+export const STAGING_KV = keyValue('staging-kv');
 
-// The REDIS_URL envVar item injected into each enabled env's server + worker,
-// positioned after DATABASE_URL and before fromGroup.
-export const REDIS_URL_ITEM = `- key: REDIS_URL
+// The REDIS_URL envVar item injected into an env's server + worker, wired to that
+// env's OWN keyvalue. Positioned after DATABASE_URL and before fromGroup.
+export function redisUrlItem(env: 'production' | 'staging'): string {
+  return `- key: REDIS_URL
   fromService:
-    name: keyvalue
+    name: ${env}-kv
     type: keyvalue
     property: connectionString
 `;
+}
 
 // docker-compose additions (jobs). worker mirrors the existing server service shape.
 export const COMPOSE_REDIS = `image: "redis:alpine"

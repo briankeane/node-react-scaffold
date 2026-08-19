@@ -24,7 +24,12 @@ databases:
 
 services:
   - type: keyvalue
-    name: keyvalue
+    name: production-kv
+    plan: starter
+    region: ohio
+    ipAllowList: []
+  - type: keyvalue
+    name: staging-kv
     plan: starter
     region: ohio
     ipAllowList: []
@@ -50,7 +55,7 @@ services:
           property: connectionString
       - key: REDIS_URL
         fromService:
-          name: keyvalue
+          name: staging-kv
           type: keyvalue
           property: connectionString
       # Remaining secrets (e.g. JWT_SECRET) live in the `staging` env group.
@@ -78,7 +83,7 @@ services:
           property: connectionString
       - key: REDIS_URL
         fromService:
-          name: keyvalue
+          name: staging-kv
           type: keyvalue
           property: connectionString
       - fromGroup: staging
@@ -110,7 +115,7 @@ services:
           property: connectionString
       - key: REDIS_URL
         fromService:
-          name: keyvalue
+          name: production-kv
           type: keyvalue
           property: connectionString
       # Remaining secrets (e.g. JWT_SECRET) live in the `production` env group.
@@ -138,7 +143,7 @@ services:
           property: connectionString
       - key: REDIS_URL
         fromService:
-          name: keyvalue
+          name: production-kv
           type: keyvalue
           property: connectionString
       - fromGroup: production

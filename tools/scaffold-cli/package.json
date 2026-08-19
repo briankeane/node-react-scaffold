@@ -6,6 +6,8 @@
   "scripts": {
     "enable-staging": "tsx src/cli.ts enable-staging",
     "enable-jobs": "tsx src/cli.ts enable-jobs",
+    "enable-domain": "tsx src/cli.ts enable-domain",
+    "setup": "tsx src/cli.ts setup",
     "test": "vitest run"
   },
   "dependencies": {
