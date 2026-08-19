@@ -1,45 +1,54 @@
 import { findRepoRoot, ConfigError } from './config.js';
 import { enableStaging, enableJobs, enableDomain } from './commands.js';
-import type { Env } from './cloud/types.js';
+import { setupCloud } from './setupCloud.js';
+import type { Env, Mode } from './cloud/types.js';
 
 const USAGE =
-  'Usage: scaffold-cli <enable-staging|enable-jobs|enable-domain>\n' +
-  '  enable-domain <domain> [--env production|staging]';
+  'Usage: scaffold-cli <command>\n' +
+  '  enable-staging\n' +
+  '  enable-jobs\n' +
+  '  enable-domain <domain> [--env production|staging]\n' +
+  '  setup cloud [--plan | --yes]';
 
-// Split argv into positionals and a validated `--env` (default production).
-function parseArgs(args: string[]): { positionals: string[]; env: Env } {
-  const positionals: string[] = [];
-  let env: Env = 'production';
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--env') {
-      const value = args[++i];
-      if (value !== 'production' && value !== 'staging') {
-        throw new ConfigError(
-          `--env must be "production" or "staging", got: ${value ?? '(missing)'}`,
-        );
-      }
-      env = value;
-    } else {
-      positionals.push(args[i]);
-    }
+// Validate a `--env` value (default production).
+function requireEnv(value: string | undefined): Env {
+  if (value === undefined) return 'production';
+  if (value !== 'production' && value !== 'staging') {
+    throw new ConfigError(`--env must be "production" or "staging", got: ${value}`);
   }
-  return { positionals, env };
+  return value;
 }
 
-function run(cmd: string | undefined, args: string[], rootDir: string): number {
+// --plan and --yes are mutually exclusive; default is interactive.
+function parseMode(args: string[]): Mode {
+  const plan = args.includes('--plan');
+  const yes = args.includes('--yes');
+  if (plan && yes) throw new ConfigError('--plan and --yes are mutually exclusive');
+  return plan ? 'plan' : yes ? 'yes' : 'interactive';
+}
+
+async function run(cmd: string | undefined, args: string[], rootDir: string): Promise<number> {
   switch (cmd) {
     case 'enable-staging':
       return enableStaging(rootDir);
     case 'enable-jobs':
       return enableJobs(rootDir);
     case 'enable-domain': {
-      const { positionals, env } = parseArgs(args);
-      const domain = positionals[0];
+      const envIdx = args.indexOf('--env');
+      const env = requireEnv(envIdx === -1 ? undefined : args[envIdx + 1]);
+      const domain = args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--env');
       if (!domain) {
         console.error('enable-domain requires a <domain> argument.\n' + USAGE);
         return 2;
       }
       return enableDomain(rootDir, { env, domain });
+    }
+    case 'setup': {
+      const sub = args[0];
+      if (sub === 'cloud') return setupCloud(rootDir, { mode: parseMode(args.slice(1)) });
+      // `setup local` is wired in a later change.
+      console.error('Usage: scaffold-cli setup <cloud> [--plan | --yes]');
+      return 2;
     }
     default:
       console.error(USAGE);
@@ -47,14 +56,11 @@ function run(cmd: string | undefined, args: string[], rootDir: string): number {
   }
 }
 
-// Surface ConfigError / usage as exit 2, YAML parse + other command failures as
-// exit 1. Command return values (0 ok, 1/3 conflict) pass straight through.
-try {
-  const cmd = process.argv[2];
-  const args = process.argv.slice(3);
-  const rootDir = findRepoRoot(process.cwd());
-  process.exit(run(cmd, args, rootDir));
-} catch (err) {
-  console.error((err as Error).message);
-  process.exit(err instanceof ConfigError ? 2 : 1);
-}
+// ConfigError / usage -> exit 2; other failures -> exit 1. Command return values
+// (0 ok, 1/3/4 per the exit-code contract) pass straight through.
+(async () => run(process.argv[2], process.argv.slice(3), findRepoRoot(process.cwd())))()
+  .then((code) => process.exit(code))
+  .catch((err) => {
+    console.error((err as Error).message);
+    process.exit(err instanceof ConfigError ? 2 : 1);
+  });
