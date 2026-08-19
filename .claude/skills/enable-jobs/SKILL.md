@@ -28,8 +28,12 @@ depends on. `npm run` propagates the CLI's actual exit code.
   `<env>-server` service wasn't found for one of the enabled envs, meaning
   `REDIS_URL` couldn't be wired for that env — if you see this, call it out clearly
   rather than letting it slide past in a wall of output.
-- Tell the user `render.yaml`/`docker-compose.yaml` are patched and committed to the
-  working tree, but **the keyvalue + worker aren't provisioned in Render yet** — they
+- Tell the user `render.yaml`/`docker-compose.yaml` are patched, and
+  `scaffold.config.json`'s `features.jobs` flag is now flipped to `true` — all three
+  are committed to the working tree together. Mention the flag explicitly (not just
+  the infra files): it's what later `/setup` runs read to decide which envs get a
+  keyvalue + worker provisioned, so it matters for anyone reviewing the diff or
+  wanting to revert. **The keyvalue + worker aren't provisioned in Render yet** — they
   only exist once the user runs `/setup` (cloud path) to actually stand them up.
 
 ## Exit 1 — conflict

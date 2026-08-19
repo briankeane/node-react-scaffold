@@ -24,10 +24,13 @@ depends on. `npm run` propagates the CLI's actual exit code.
 
 - If the CLI printed anything to stderr, relay it verbatim — these are warnings, not
   failures (e.g. a note about a wiring gap the patch couldn't resolve on its own).
-- Tell the user the render.yaml (and, if newly created, the staging deploy workflow)
-  are patched and committed to the working tree, but **staging isn't provisioned in
-  Render yet** — the new service only exists once they run `/setup` (cloud path) to
-  actually stand it up.
+- Tell the user `render.yaml` (and, if newly created, the staging deploy workflow)
+  are patched, and `scaffold.config.json`'s `features.staging` flag is now flipped to
+  `true` — all of these are committed to the working tree together. Mention the flag
+  explicitly (not just the infra files): it's what later `/setup` runs read to decide
+  which envs get provisioned, so it matters for anyone reviewing the diff or wanting
+  to revert. **Staging isn't provisioned in Render yet** — the new service only exists
+  once they run `/setup` (cloud path) to actually stand it up.
 
 ## Exit 1 — conflict
 

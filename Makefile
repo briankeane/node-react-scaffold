@@ -51,6 +51,14 @@ test-server-debug:
 test-client:
 	$(COMPOSE) exec client npm run test
 
+# Note: these targets' own exit code is NOT the underlying scaffold-cli command's
+# real exit code — GNU Make reports a fixed generic status (commonly 2) on any
+# recipe failure, regardless of the recipe's actual exit code (verified: a real
+# exit-3 conflict from enable-domain comes back as `make`'s exit 2; the true code
+# only appears in the printed "make: *** [target] Error N" line). Callers that need
+# the real 0/1/2/3/4 contract (e.g. the /setup, /enable-* skills in .claude/skills/)
+# invoke `cd tools/scaffold-cli && npm run <script> -- <args>` directly instead of
+# these targets. These `make` targets remain the human-friendly entry point.
 scaffold-cli-deps:
 	cd tools/scaffold-cli && [ -d node_modules ] || npm ci
 
