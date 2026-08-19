@@ -29,12 +29,14 @@ export class GitHubCli implements GitHubClient {
     return this.ownerCache;
   }
 
-  // Owner-scoped package API paths, in probe order: the authenticated user's own
-  // packages (works for PRIVATE packages, unlike /users/{owner}), then the org.
+  // Owner-scoped package API paths, in probe order: the repo owner's ORG namespace
+  // first (the real image for an org repo), then the authenticated user's own
+  // packages (covers a personal repo and PRIVATE packages). Org-first avoids a
+  // same-named personal package shadowing an org repo's package.
   private async packageScopes(pkg: string): Promise<string[]> {
     const { owner } = await this.currentRepo();
     const p = encodeURIComponent(pkg);
-    return [`/user/packages/container/${p}`, `/orgs/${owner}/packages/container/${p}`];
+    return [`/orgs/${owner}/packages/container/${p}`, `/user/packages/container/${p}`];
   }
 
   async packageVisibility(pkg: string): Promise<'public' | 'private' | 'unknown'> {
@@ -78,7 +80,10 @@ export class GitHubCli implements GitHubClient {
     const pkg = image.split('/').pop() ?? image; // ghcr.io/owner/repo -> repo
     for (const scope of await this.packageScopes(pkg)) {
       try {
-        const out = await this.gh(['api', '--paginate', `${scope}/versions`]);
+        // The moving :production / :staging tag rides the newest version, so the
+        // first page (100 newest) is enough. Avoid `--paginate` here: gh emits each
+        // page as a separate JSON document, which JSON.parse can't read as one array.
+        const out = await this.gh(['api', `${scope}/versions?per_page=100`]);
         const versions = JSON.parse(out) as Array<{ metadata?: { container?: { tags?: string[] } } }>;
         return versions.some((v) => v.metadata?.container?.tags?.includes(tag));
       } catch (err) {

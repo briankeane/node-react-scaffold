@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { Step, CloudContext, CheckResult, Env } from './types.js';
 import type { RenderService } from './clients/types.js';
 import { AuthError, ConflictError, RetryableError } from './clients/types.js';
@@ -60,17 +62,27 @@ const needs = (detail: string, data?: Record<string, unknown>): CheckResult => (
 // ConflictError on a scope mismatch. Missing services => the `missing` list.
 async function resolveServices(
   ctx: CloudContext,
-): Promise<{ ids: Record<string, string>; missing: string[] }> {
+): Promise<{ services: Map<string, RenderService>; ids: Record<string, string>; missing: string[] }> {
   const all = await ctx.render.listServices();
-  const byName = new Map<string, RenderService>(all.map((s) => [s.name, s]));
+  const services = new Map<string, RenderService>();
   const ids: Record<string, string> = {};
   const missing: string[] = [];
   for (const { name, type } of expectedServices(ctx)) {
-    const svc = byName.get(name);
-    if (!svc) {
+    // Render lists an account/workspace-wide set; a duplicate name (a preview
+    // instance, a second Blueprint, another app) is ambiguous — never silently
+    // pick one and bind its ID into a secret. Require exactly one match.
+    const matches = all.filter((s) => s.name === name);
+    if (matches.length === 0) {
       missing.push(name);
       continue;
     }
+    if (matches.length > 1) {
+      throw new ConflictError(
+        `${matches.length} Render services named "${name}" in this workspace; cannot disambiguate. ` +
+          'Remove the duplicate/preview or rename it, then re-run.',
+      );
+    }
+    const svc = matches[0];
     if (svc.type !== type) {
       throw new ConflictError(`Render service "${name}" is type ${svc.type}, expected ${type}`);
     }
@@ -79,9 +91,10 @@ async function resolveServices(
         `Render service "${name}" pulls ${svc.imagePath}, expected image ${ctx.repo.image} (wrong repo/scope)`,
       );
     }
+    services.set(name, svc);
     ids[name] = svc.id;
   }
-  return { ids, missing };
+  return { services, ids, missing };
 }
 
 // ---- steps ----
@@ -93,9 +106,12 @@ function preflight(): Step {
     kind: 'auto',
     async check(ctx): Promise<CheckResult> {
       if (!ctx.tokens.renderApiKey) throw new AuthError('RENDER_API_KEY is not set in the environment');
+      // Fail fast on NETLIFY_AUTH_TOKEN up front, not after creating paid infra.
+      if (!ctx.tokens.netlifyAuthToken)
+        throw new AuthError('NETLIFY_AUTH_TOKEN is not set in the environment');
       if (!(await ctx.github.authStatus())) throw new AuthError('gh is not authenticated (run: gh auth login)');
       if (!(await ctx.netlify.loginStatus())) throw new AuthError('netlify is not authenticated (run: netlify login)');
-      return satisfied('gh + netlify authenticated, RENDER_API_KEY present');
+      return satisfied('gh + netlify authenticated, RENDER_API_KEY + NETLIFY_AUTH_TOKEN present');
     },
     preview: () => 'preflight',
     async apply(): Promise<void> {},
@@ -108,6 +124,23 @@ function firstImage(): Step {
     name: 'first-image',
     kind: 'auto',
     async check(ctx): Promise<CheckResult> {
+      // A fresh project that never replaced the Blueprint's placeholder image path
+      // would pass the GHCR check yet fail the Blueprint sync (nothing to pull).
+      // Tolerate an unreadable render.yaml (skip the check) so this stays testable.
+      let renderYaml: string | undefined;
+      try {
+        renderYaml = readFileSync(join(ctx.rootDir, 'render.yaml'), 'utf8');
+      } catch {
+        renderYaml = undefined;
+      }
+      if (renderYaml?.includes('YOUR_ORG/YOUR_REPO')) {
+        return {
+          state: 'conflict',
+          detail:
+            'render.yaml still has the placeholder image ghcr.io/YOUR_ORG/YOUR_REPO. ' +
+            `Replace it with ${ctx.repo.image} (lowercased) and commit, then re-run.`,
+        };
+      }
       const missing: string[] = [];
       for (const env of ctx.envs) {
         if (!(await ctx.github.imageExists(ctx.repo.image, envTag(env)))) {
@@ -267,11 +300,13 @@ function netlifySites(): Step {
     },
     async apply(ctx): Promise<void> {
       const slug = await ctx.netlify.accountSlug();
-      const services = await ctx.render.listServices();
+      // Use the scope-validated resolution (rejects duplicates/wrong-repo) rather
+      // than a raw name find, so VITE_SERVER_BASE_URL can't point at another app.
+      const { services } = await resolveServices(ctx);
       for (const env of ctx.envs) {
         let site = await ctx.netlify.findSite(siteName(ctx.repo.name, env));
         if (!site) site = await ctx.netlify.createSite(siteName(ctx.repo.name, env), slug);
-        const server = services.find((s) => s.name === serverName(env));
+        const server = services.get(serverName(env));
         if (!server?.url) {
           throw new RetryableError(`Render ${serverName(env)} URL not available yet`);
         }

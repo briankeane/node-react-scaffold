@@ -73,6 +73,16 @@ describe('planDomain', () => {
     expect(r.ok).toBe(false); // base render.yaml is production-only
   });
 
+  it('conflicts on a single non-scalar (object-shaped) domains entry', () => {
+    const first = planDomain(base(), { env: 'production', domain: 'a.example.com' });
+    if (!first.ok) throw new Error('expected ok');
+    // replace the scalar entry with a map-shaped one (hand-authored)
+    const objShaped = first.output.replace('- a.example.com', '- name: a.example.com\n        enabled: true');
+    const r = planDomain(objShaped, { env: 'production', domain: 'b.example.com' });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.conflicts[0].diff).toMatch(/non-scalar/);
+  });
+
   it('preserves the surrounding comments (comment-preserving patch)', () => {
     const r = planDomain(base(), { env: 'production', domain: 'api.example.com' });
     if (!r.ok) throw new Error('expected ok');

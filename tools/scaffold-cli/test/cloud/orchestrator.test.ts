@@ -141,6 +141,42 @@ describe('runSteps', () => {
     expect(await runSteps(ctx('interactive', new FakeIO()), [step])).toBe(4);
   });
 
+  it('a transient error while polling a manual step keeps polling (does not crash)', async () => {
+    const applied: string[] = [];
+    let calls = 0;
+    const step: Step = {
+      name: 'blueprint',
+      kind: 'manual',
+      async check(): Promise<CheckResult> {
+        calls++;
+        if (calls === 1) return { state: 'needs_action', detail: 'pending' };
+        if (calls === 2) throw new RetryableError('render 503'); // mid-poll blip
+        return { state: 'satisfied', detail: 'synced' };
+      },
+      preview: () => 'blueprint',
+      async apply(): Promise<void> {},
+    };
+    const after = mkStep('after', 'auto', ['needs_action'], applied);
+    expect(await runSteps(ctx('interactive', new FakeIO()), [step, after])).toBe(0);
+    expect(applied).toEqual(['after']);
+  });
+
+  it('a conflict surfacing while polling a manual step returns 3', async () => {
+    let calls = 0;
+    const step: Step = {
+      name: 'blueprint',
+      kind: 'manual',
+      async check(): Promise<CheckResult> {
+        calls++;
+        if (calls === 1) return { state: 'needs_action', detail: 'pending' };
+        throw new ConflictError('wrong-type service appeared');
+      },
+      preview: () => 'blueprint',
+      async apply(): Promise<void> {},
+    };
+    expect(await runSteps(ctx('interactive', new FakeIO()), [step])).toBe(3);
+  });
+
   it('retryable check that clears on retry proceeds', async () => {
     const applied: string[] = [];
     const step = mkStep('flaky', 'auto', ['retryable_error', 'needs_action'], applied);

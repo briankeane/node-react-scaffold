@@ -88,27 +88,32 @@ export class RenderApi implements RenderClient {
     return resp.json().catch(() => ({}));
   }
 
-  async listServices(): Promise<RenderService[]> {
-    // Paginate: Render returns { ..., cursor } items; follow the cursor.
+  // Follow Render's cursor pagination, accumulating every page.
+  private async listAll(path: string): Promise<unknown[]> {
+    const sep = path.includes('?') ? '&' : '?';
     const all: unknown[] = [];
     let cursor = '';
     for (;;) {
-      const page = (await this.req(`/services?limit=100${cursor ? `&cursor=${cursor}` : ''}`)) as Array<{
+      const page = (await this.req(`${path}${sep}limit=100${cursor ? `&cursor=${cursor}` : ''}`)) as Array<{
         cursor?: string;
       }>;
       if (!Array.isArray(page) || page.length === 0) break;
       all.push(...page);
       const last = page[page.length - 1];
-      if (!last?.cursor) break;
+      if (!last?.cursor || page.length < 100) break;
       cursor = last.cursor;
-      if (page.length < 100) break;
     }
-    return parseServices(all);
+    return all;
+  }
+
+  async listServices(): Promise<RenderService[]> {
+    // includePreviews=false so a preview environment's same-named service can't be
+    // matched and bound into a production secret.
+    return parseServices(await this.listAll('/services?includePreviews=false'));
   }
 
   async listEnvGroups(): Promise<EnvGroup[]> {
-    const page = (await this.req('/env-groups?limit=100')) as Array<{ envGroup?: Record<string, unknown> }>;
-    const items = Array.isArray(page) ? page : [];
+    const items = (await this.listAll('/env-groups')) as Array<{ envGroup?: Record<string, unknown> }>;
     return items.map((raw) => {
       const g = (raw.envGroup ?? raw) as Record<string, unknown>;
       const envVars = (g.envVars ?? []) as Array<{ key?: string }>;

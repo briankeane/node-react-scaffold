@@ -465,6 +465,19 @@ is already done, so it is safe to re-run after a failure or the manual pause.
 > **DNS / Cloudflare:** if you use a custom domain, add the CNAME record as **DNS
 > only** (grey cloud), not Proxied — see [Custom Domain Setup](#custom-domain-setup).
 
+### Assumptions
+
+- **A dedicated Render workspace/project.** The env groups are named `production` /
+  `staging` because `render.yaml` references them via `fromGroup`. If the same Render
+  workspace already hosts another app with a `production` env group, `setup cloud` will
+  reuse it — use a separate workspace/project per scaffold. Likewise it refuses to act
+  when a Render **service** name is duplicated (a preview, a second Blueprint) rather
+  than guessing which one is yours.
+- **A clean secret slate.** GitHub Actions secrets are write-only, so `setup cloud`
+  can verify a secret's presence but not its value. If the repo carries a stale
+  `RENDER_*_SERVICE_ID` / `NETLIFY_*_SITE_ID` from a previous deployment, clear it
+  first — otherwise setup reports success while CI deploys the wrong resource.
+
 ### Local setup
 
 `make setup-local` verifies Docker is running, then drives `make install` (env

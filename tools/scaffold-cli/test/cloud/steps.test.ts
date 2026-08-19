@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { runSteps } from '../../src/cloud/orchestrator.js';
 import { buildSteps, requiredSecrets, expectedServices, ghcrPackageName, imageMatches } from '../../src/cloud/steps.js';
 import { FakeRender, FakeGitHub, FakeNetlify } from '../../src/cloud/clients/fakes.js';
@@ -172,11 +175,30 @@ describe('setup cloud steps', () => {
     expect(render.calls).not.toContain('addEnvGroupVars');
   });
 
-  it('missing NETLIFY_AUTH_TOKEN when a netlify secret must be set returns exit 3', async () => {
-    const { ctx } = mkCtx({ render: new FakeRender({ services: [prodServer()] }), netlifyAuthToken: undefined });
-    // netlifyAuthToken undefined; NETLIFY_AUTH_TOKEN secret is missing -> conflict in github-secrets
+  it('missing NETLIFY_AUTH_TOKEN fails fast at preflight (exit 2) before any mutation', async () => {
+    const { ctx, github } = mkCtx({ render: new FakeRender({ services: [prodServer()] }), netlifyAuthToken: undefined });
     const code = await runSteps(ctx, buildSteps());
-    expect(code).toBe(3);
+    expect(code).toBe(2);
+    expect(github.visibility).toBe('private'); // stopped before the GHCR gate
+  });
+
+  it('duplicate Render service names in the workspace return exit 3 (no silent pick)', async () => {
+    const render = new FakeRender({
+      services: [
+        { id: 'srv-a', name: 'production-server', type: 'web', imagePath: 'ghcr.io/acme/app:production', url: 'https://a' },
+        { id: 'srv-b', name: 'production-server', type: 'web', imagePath: 'ghcr.io/acme/app:production', url: 'https://b' },
+      ],
+    });
+    const { ctx } = mkCtx({ render });
+    expect(await runSteps(ctx, buildSteps())).toBe(3);
+  });
+
+  it('a render.yaml still holding the placeholder image returns exit 3', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'scaffold-placeholder-'));
+    writeFileSync(join(dir, 'render.yaml'), 'services:\n  - image:\n      url: ghcr.io/YOUR_ORG/YOUR_REPO:production\n');
+    const { ctx } = mkCtx({ render: new FakeRender({ services: [prodServer()] }) });
+    ctx.rootDir = dir;
+    expect(await runSteps(ctx, buildSteps())).toBe(3);
   });
 });
 

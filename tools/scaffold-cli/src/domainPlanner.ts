@@ -54,10 +54,12 @@ export function planDomain(currentYaml: string, opts: { env: Env; domain: string
     return { ok: true, output: stringifyDoc(doc), changed: true, warnings };
   }
 
-  if (!isSeq(existing) || existing.items.length !== 1) {
-    const detail = isSeq(existing)
-      ? `${existing.items.length} entries`
-      : 'a non-list value';
+  if (!isSeq(existing) || existing.items.length !== 1 || !(existing.items[0] instanceof Scalar)) {
+    const detail = !isSeq(existing)
+      ? 'a non-list value'
+      : existing.items.length !== 1
+        ? `${existing.items.length} entries`
+        : 'a non-scalar entry';
     const conflict: Conflict = {
       block: `services: ${opts.env}-server.domains`,
       diff:
