@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { mkdtempSync, mkdirSync, cpSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { enableStaging, enableJobs } from '../src/commands.js';
+import { enableStaging, enableJobs, enableDomain } from '../src/commands.js';
 
 const REPO = join(__dirname, '../../..'); // repo root
 
@@ -49,6 +49,34 @@ describe('enable commands', () => {
     const before = cfg(d).staging;
     expect(() => enableStaging(d)).toThrow(/Failed to parse render\.yaml/);
     expect(cfg(d).staging).toBe(before); // flag not flipped: throw happened before commitWrites
+  });
+
+  it('enable-domain patches production-server, flips customDomain, is idempotent', () => {
+    const d = freshRoot();
+    expect(enableDomain(d, { env: 'production', domain: 'api.example.com' })).toBe(0);
+    expect(cfg(d).customDomain).toBe(true);
+    expect(readFileSync(join(d, 'render.yaml'), 'utf8')).toContain('- api.example.com');
+    const snap = readFileSync(join(d, 'render.yaml'), 'utf8');
+    expect(enableDomain(d, { env: 'production', domain: 'api.example.com' })).toBe(0); // idempotent
+    expect(readFileSync(join(d, 'render.yaml'), 'utf8')).toBe(snap);
+  });
+
+  it('enable-domain fails loud (exit 3) on a hand-mangled multi-domain list, mutates nothing', () => {
+    const d = freshRoot();
+    enableDomain(d, { env: 'production', domain: 'a.example.com' });
+    const mangled = readFileSync(join(d, 'render.yaml'), 'utf8').replace(
+      '- a.example.com',
+      '- a.example.com\n      - b.example.com',
+    );
+    writeFileSync(join(d, 'render.yaml'), mangled);
+    expect(enableDomain(d, { env: 'production', domain: 'c.example.com' })).toBe(3);
+    expect(readFileSync(join(d, 'render.yaml'), 'utf8')).toBe(mangled);
+  });
+
+  it('enable-domain on a missing env server fails loud (exit 3), flag not flipped', () => {
+    const d = freshRoot(); // production-only base
+    expect(enableDomain(d, { env: 'staging', domain: 'api-staging.example.com' })).toBe(3);
+    expect(cfg(d).customDomain).toBe(false);
   });
 
   it('a conflict aborts with exit 1 and mutates nothing (flag stays, files unchanged)', () => {

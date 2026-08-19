@@ -63,6 +63,10 @@ enable-staging: scaffold-cli-deps
 enable-jobs: scaffold-cli-deps
 	cd tools/scaffold-cli && npm run enable-jobs
 
+# Usage: make enable-domain DOMAIN=api.example.com [ENV=staging]  (ENV defaults to production)
+enable-domain: scaffold-cli-deps
+	cd tools/scaffold-cli && npm run enable-domain -- $(DOMAIN) $(if $(ENV),--env $(ENV),)
+
 lint-server:
 	$(COMPOSE) exec server npm run lint
 
@@ -107,7 +111,7 @@ create-release-pr:
 
 .PHONY: find-open-ports install launch launch-detached terminate restart logs logs-server logs-client \
 	test-server test-server-file test-server-with-logging test-server-debug test-client test-scaffold-cli \
-	scaffold-cli-deps enable-staging enable-jobs \
+	scaffold-cli-deps enable-staging enable-jobs enable-domain \
 	lint-server lint-client prettier-server prettier-client \
 	prettier-all build-server build-client build-and-test-server migrate migrate-all \
 	generate-migration worker-debug create-release-pr
